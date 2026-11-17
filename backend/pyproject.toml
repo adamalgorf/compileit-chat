@@ -3,7 +3,18 @@ name = "compileit-chat"
 version = "0.1.0"
 description = "Swedish Q&A chat over compileit.com: a LangGraph agent behind a Clean Architecture core."
 requires-python = ">=3.12,<3.14"
-dependencies = []
+dependencies = [
+    "chromadb>=1.5.9",
+    "httpx>=0.28.1",
+    "langchain-openai>=1.8.0",
+    "pydantic-settings>=2.16.3",
+    "tiktoken>=0.14.0",
+    "trafilatura>=2.3.1",
+    "typer>=0.29.1",
+]
+
+[project.scripts]
+compileit-chat = "compileit_chat.interface.cli.main:app"
 
 [dependency-groups]
 dev = [
@@ -58,6 +69,10 @@ mypy_path = "src"
 packages = ["compileit_chat"]
 warn_unreachable = true
 
+[[tool.mypy.overrides]]
+module = ["lxml", "lxml.*"]  # ships without type information
+ignore_missing_imports = true
+
 # --- Tests -----------------------------------------------------------------
 
 [tool.pytest.ini_options]
@@ -73,14 +88,32 @@ markers = ["eval: hits real OpenAI APIs; excluded from CI (run with `make eval`)
 root_package = "compileit_chat"
 include_external_packages = true
 
+# Entry points in `interface` obtain use cases from the composition root (`container`), which
+# is the only module that knows the adapters.
 [[tool.importlinter.contracts]]
 name = "Layers: dependencies point inward only"
 type = "layers"
 layers = [
-    "compileit_chat.interface | compileit_chat.infrastructure",
+    "compileit_chat.interface",
+    "compileit_chat.container",
+    "compileit_chat.config",
+    "compileit_chat.infrastructure",
     "compileit_chat.application",
     "compileit_chat.domain",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Interface never touches adapters directly"
+type = "forbidden"
+source_modules = ["compileit_chat.interface"]
+forbidden_modules = ["compileit_chat.infrastructure"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Adapters are configured with plain values, never with Settings"
+type = "forbidden"
+source_modules = ["compileit_chat.infrastructure"]
+forbidden_modules = ["compileit_chat.config"]
 
 [[tool.importlinter.contracts]]
 name = "Core (domain + application) is framework-free"
