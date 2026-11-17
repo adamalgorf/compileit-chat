@@ -77,6 +77,16 @@ class Chunk:
     def source(self) -> SourceRef:
         return SourceRef(title=self.title, url=self.document_url)
 
+    @property
+    def search_text(self) -> str:
+        """Text to index: the chunk prefixed with its page title and section.
+
+        A chunk like "Vi finns i tre städer" is only findable for "kontor" if it carries
+        the context that it sits under "Kontakta oss > Våra kontor".
+        """
+        context = " > ".join(part for part in (self.title, self.section_heading) if part)
+        return f"{context}\n\n{self.text}"
+
 
 @dataclass(frozen=True, slots=True)
 class ScoredChunk:

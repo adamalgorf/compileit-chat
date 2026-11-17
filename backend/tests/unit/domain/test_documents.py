@@ -46,3 +46,10 @@ def test_chunk_id_is_deterministic_and_unique_per_position() -> None:
     assert first.id == replace(first, text="changed").id
     assert first.id != make_chunk(1).id
     assert first.id != make_chunk(0, url="https://www.compileit.com/kontakt").id
+
+
+def test_search_text_prefixes_page_and_section_context() -> None:
+    chunk = make_chunk(0)
+
+    assert chunk.search_text == "Om oss > Vår historia\n\nCompileit grundades ..."
+    assert replace(chunk, section_heading=None).search_text.startswith("Om oss\n\n")
