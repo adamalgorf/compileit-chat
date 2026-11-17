@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 BACKEND := cd backend &&
 
-.PHONY: help install lint format typecheck test check
+.PHONY: help install ingest index lint format typecheck test check
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -9,6 +9,12 @@ help: ## Show available targets
 install: ## Install backend dependencies and git hooks
 	$(BACKEND) uv sync
 	$(BACKEND) uv run pre-commit install --config ../.pre-commit-config.yaml
+
+ingest: ## Re-crawl compileit.com, update the snapshot, rebuild the index
+	$(BACKEND) uv run compileit-chat ingest
+
+index: ## Rebuild the index from the committed snapshot (no crawl)
+	$(BACKEND) uv run compileit-chat ingest --no-crawl
 
 lint: ## Ruff lint + format check + architecture contracts
 	$(BACKEND) uv run ruff check .
