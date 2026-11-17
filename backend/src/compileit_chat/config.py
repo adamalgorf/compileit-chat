@@ -35,8 +35,9 @@ class Settings(BaseSettings):
     chunk_max_tokens: int = Field(default=800, gt=0)
     chunk_overlap_tokens: int = Field(default=80, ge=0)
 
-    # Hybrid retrieval: candidates fetched from each retriever before rank fusion
-    retrieval_candidates: int = Field(default=20, gt=0)
+    # Hybrid retrieval: hits from each side before rank fusion (tuned in ADR-0003)
+    retrieval_vector_candidates: int = Field(default=20, gt=0)
+    retrieval_lexical_candidates: int = Field(default=3, ge=0)
     rrf_k: int = Field(default=60, gt=0)
 
     # Storage. The snapshot is committed; runtime state is git-ignored.

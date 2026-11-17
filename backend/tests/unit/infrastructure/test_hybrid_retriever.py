@@ -23,14 +23,28 @@ PAGES = [
 EMBEDDINGS = KeywordEmbeddings(["kontor", "ai", "personuppgifter"])
 
 
-async def make_retriever(candidates: int = 20) -> tuple[HybridRetriever, InMemoryVectorStore]:
+async def make_retriever(
+    lexical_candidates: int = 3,
+) -> tuple[HybridRetriever, InMemoryVectorStore]:
     store = InMemoryVectorStore()
     chunks = [chunk for page in PAGES for chunk in ParagraphChunker().split(page)]
     await store.replace_all(
         chunks, await EMBEDDINGS.embed_documents([c.search_text for c in chunks])
     )
-    retriever = HybridRetriever(EMBEDDINGS, store, SwedishTokenizer(), candidates=candidates)
+    retriever = HybridRetriever(
+        EMBEDDINGS, store, SwedishTokenizer(), lexical_candidates=lexical_candidates
+    )
     return retriever, store
+
+
+async def test_without_lexical_candidates_it_is_pure_vector_search() -> None:
+    retriever, store = await make_retriever(lexical_candidates=0)
+    query = "559058-9650"
+
+    hits = await retriever.search(query, k=6)
+    vector_hits = await store.search(await EMBEDDINGS.embed_query(query), 6)
+
+    assert [h.chunk for h in hits] == [h.chunk for h in vector_hits]
 
 
 async def test_semantic_match_ranks_first() -> None:

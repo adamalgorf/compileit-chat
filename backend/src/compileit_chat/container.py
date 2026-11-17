@@ -83,7 +83,8 @@ class Container:
             self.embeddings,
             self.vector_store,
             SwedishTokenizer(),
-            candidates=self.settings.retrieval_candidates,
+            vector_candidates=self.settings.retrieval_vector_candidates,
+            lexical_candidates=self.settings.retrieval_lexical_candidates,
             rrf_k=self.settings.rrf_k,
         )
 

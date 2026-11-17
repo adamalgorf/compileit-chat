@@ -36,9 +36,14 @@ class _LexicalIndex:
 
 
 class HybridRetriever:
-    """The BM25 index is built from the vector store on first search and then cached.
+    """Vector search is the backbone; BM25 contributes only its few strongest hits.
 
-    The corpus only changes on re-ingestion, which happens offline; restart to pick it up.
+    Measured on this corpus (ADR-0003): fusing BM25's full top 20 lets chunks that merely
+    share generic words ("typer", "jobbar") outvote the best vector hit, through RRF's
+    agreement bonus. Its top 3 keeps the exact-term wins without that noise.
+
+    The BM25 index is built from the vector store on first search and then cached; the
+    corpus only changes on re-ingestion, which happens offline, so restart to pick it up.
     """
 
     def __init__(
@@ -46,23 +51,24 @@ class HybridRetriever:
         embeddings: EmbeddingPort,
         vector_store: VectorStorePort,
         tokenize: Tokenizer,
-        candidates: int = 20,
+        vector_candidates: int = 20,
+        lexical_candidates: int = 3,
         rrf_k: int = 60,
     ) -> None:
         self._embeddings = embeddings
         self._vector_store = vector_store
         self._tokenize = tokenize
-        self._candidates = candidates
+        self._vector_candidates = vector_candidates
+        self._lexical_candidates = lexical_candidates
         self._rrf_k = rrf_k
         self._lexical: _LexicalIndex | None = None
         self._lexical_lock = asyncio.Lock()
 
     async def search(self, query: str, k: int) -> list[ScoredChunk]:
-        n = max(k, self._candidates)
         lexical = await self._lexical_index()
         embedding = await self._embeddings.embed_query(query)
-        vector_hits = await self._vector_store.search(embedding, n)
-        lexical_hits = lexical.search(query, n)
+        vector_hits = await self._vector_store.search(embedding, max(k, self._vector_candidates))
+        lexical_hits = lexical.search(query, self._lexical_candidates)
 
         chunks_by_id = {hit.chunk.id: hit.chunk for hit in (*vector_hits, *lexical_hits)}
         fused = reciprocal_rank_fusion(
