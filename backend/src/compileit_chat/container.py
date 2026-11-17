@@ -13,6 +13,8 @@ from compileit_chat.infrastructure.chunking.heading_chunker import (
 from compileit_chat.infrastructure.crawling.crawler import CrawlConfig, SitemapCrawler
 from compileit_chat.infrastructure.crawling.extractor import MainContentExtractor
 from compileit_chat.infrastructure.llm.embeddings import LangChainEmbeddings, openai_embeddings
+from compileit_chat.infrastructure.retrieval.hybrid_retriever import HybridRetriever
+from compileit_chat.infrastructure.retrieval.tokenizer import SwedishTokenizer
 from compileit_chat.infrastructure.storage.jsonl_document_store import JsonlDocumentStore
 from compileit_chat.infrastructure.vectorstore.chroma_store import ChromaVectorStore
 
@@ -74,6 +76,16 @@ class Container:
     @cached_property
     def vector_store(self) -> ChromaVectorStore:
         return ChromaVectorStore(self.settings.chroma_dir)
+
+    @cached_property
+    def retriever(self) -> HybridRetriever:
+        return HybridRetriever(
+            self.embeddings,
+            self.vector_store,
+            SwedishTokenizer(),
+            candidates=self.settings.retrieval_candidates,
+            rrf_k=self.settings.rrf_k,
+        )
 
     @cached_property
     def embeddings(self) -> LangChainEmbeddings:

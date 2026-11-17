@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import math
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from compileit_chat.application.errors import AgentError
-from compileit_chat.domain.documents import Chunk, Document, FetchedPage, Language
+from compileit_chat.domain.documents import Chunk, Document, FetchedPage, Language, ScoredChunk
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Mapping, Sequence
 
     from compileit_chat.application.dto import AgentEvent
     from compileit_chat.domain.conversation import Question, SessionId
-    from compileit_chat.domain.documents import ScoredChunk
+
 
 NOW = datetime(2026, 11, 17, tzinfo=UTC)
 
@@ -131,7 +132,34 @@ class InMemoryVectorStore:
         return len(self.chunks)
 
     async def search(self, embedding: Sequence[float], k: int) -> list[ScoredChunk]:
-        raise NotImplementedError  # not needed until retrieval tests
+        scored = [
+            ScoredChunk(chunk, _cosine(embedding, vector))
+            for chunk, vector in zip(self.chunks, self.embeddings, strict=True)
+        ]
+        return sorted(scored, key=lambda hit: hit.score, reverse=True)[:k]
 
     async def all_chunks(self) -> list[Chunk]:
         return list(self.chunks)
+
+
+class KeywordEmbeddings:
+    """Embeds text as keyword-presence vectors: deterministic 'semantics' for retrieval tests."""
+
+    def __init__(self, keywords: Sequence[str]) -> None:
+        self._keywords = keywords
+
+    async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
+        return [self._embed(text) for text in texts]
+
+    async def embed_query(self, text: str) -> list[float]:
+        return self._embed(text)
+
+    def _embed(self, text: str) -> list[float]:
+        lowered = text.casefold()
+        return [1.0 if keyword in lowered else 0.0 for keyword in self._keywords] + [0.01]
+
+
+def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
+    return dot / norm if norm else 0.0
