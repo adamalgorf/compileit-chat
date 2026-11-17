@@ -1,0 +1,101 @@
+[project]
+name = "compileit-chat"
+version = "0.1.0"
+description = "Swedish Q&A chat over compileit.com: a LangGraph agent behind a Clean Architecture core."
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.1",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/compileit_chat"]
+
+# --- Lint & format ---------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "SIM",      # simplify
+    "C4",       # comprehensions
+    "PT",       # pytest style
+    "ASYNC",    # async pitfalls
+    "RUF",      # ruff-specific
+    "TC",       # type-checking imports
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+# --- Types -----------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["compileit_chat"]
+warn_unreachable = true
+
+# --- Tests -----------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers"
+markers = ["eval: hits real OpenAI APIs; excluded from CI (run with `make eval`)"]
+
+# --- Architecture (dependency rule enforced in CI) -------------------------
+
+[tool.importlinter]
+root_package = "compileit_chat"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: dependencies point inward only"
+type = "layers"
+layers = [
+    "compileit_chat.interface | compileit_chat.infrastructure",
+    "compileit_chat.application",
+    "compileit_chat.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Core (domain + application) is framework-free"
+type = "forbidden"
+source_modules = ["compileit_chat.domain", "compileit_chat.application"]
+forbidden_modules = [
+    "chromadb",
+    "fastapi",
+    "httpx",
+    "langchain",
+    "langchain_core",
+    "langchain_openai",
+    "langgraph",
+    "openai",
+    "pydantic",
+    "trafilatura",
+    "typer",
+]
