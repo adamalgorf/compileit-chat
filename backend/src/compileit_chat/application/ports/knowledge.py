@@ -20,8 +20,10 @@ class VectorStorePort(Protocol):
     async def replace_all(
         self, chunks: Sequence[Chunk], embeddings: Sequence[Sequence[float]]
     ) -> None:
-        """Atomically swap the indexed content, so pages removed from the site disappear."""
+        """Swap the indexed content wholesale, so pages removed from the site disappear."""
         ...
+
+    async def count(self) -> int: ...
 
     async def search(self, embedding: Sequence[float], k: int) -> list[ScoredChunk]: ...
 
