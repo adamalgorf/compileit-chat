@@ -8,6 +8,7 @@ dependencies = [
     "httpx>=0.28.1",
     "langchain-openai>=1.8.0",
     "pydantic-settings>=2.16.3",
+    "snowballstemmer>=3.1.1",
     "tiktoken>=0.14.0",
     "trafilatura>=2.3.1",
     "typer>=0.29.1",
@@ -57,6 +58,10 @@ select = [
     "TC",       # type-checking imports
 ]
 
+ignore = [
+    "SIM905",   # """word list""".split() is more readable than a long list literal
+]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
 
@@ -70,7 +75,7 @@ packages = ["compileit_chat"]
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-module = ["lxml", "lxml.*"]  # ships without type information
+module = ["lxml", "lxml.*", "snowballstemmer"]  # ship without type information
 ignore_missing_imports = true
 
 # --- Tests -----------------------------------------------------------------
