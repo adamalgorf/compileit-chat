@@ -31,3 +31,6 @@ next-env.d.ts
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local tool config (machine-specific paths)
+.claude/
