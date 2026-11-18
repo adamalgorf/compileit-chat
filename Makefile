@@ -2,7 +2,7 @@
 BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
-.PHONY: help install api web ingest index docs lint format typecheck test check
+.PHONY: help install api web ingest index docs eval lint format typecheck test check
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ index: ## Rebuild the index from the committed snapshot (no crawl)
 
 docs: ## Regenerate the orchestration graph in docs/architecture.md from code
 	$(BACKEND) uv run compileit-chat docs
+
+eval: ## Run the golden-question eval against OpenAI (costs cents) -> docs/eval-report.md
+	$(BACKEND) uv run python -m tests.eval.run
 
 lint: ## Backend: ruff + architecture contracts. Frontend: ESLint + Prettier
 	$(BACKEND) uv run ruff check .

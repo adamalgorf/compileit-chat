@@ -79,10 +79,15 @@ class Container:
 
         Sessions are LangGraph threads, so they survive restarts.
         """
-        async with sqlite_checkpointer(self.settings.checkpoint_db) as checkpointer:
-            orchestrator = self._orchestrator(checkpointer)
+        async with self.orchestrator() as orchestrator:
             # The orchestrator is both the ChatAgentPort and the ConversationStorePort.
             yield ChatUseCases(ask=AskQuestion(orchestrator), reset=ResetConversation(orchestrator))
+
+    @asynccontextmanager
+    async def orchestrator(self) -> AsyncIterator[LangGraphOrchestrator]:
+        """The agent with its SQLite conversation store open. The eval harness wraps it."""
+        async with sqlite_checkpointer(self.settings.checkpoint_db) as checkpointer:
+            yield self._orchestrator(checkpointer)
 
     async def prepare(self) -> None:
         """Startup work for the API: build the search index from the snapshot if missing."""
