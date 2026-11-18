@@ -13,3 +13,4 @@ place with a note rather than rewritten, so the reasoning history stays visible.
 | [0005](0005-sse-over-websockets.md) | Server-Sent Events for streaming, not WebSockets |
 | [0006](0006-sqlite-checkpointer-for-sessions.md) | Conversation memory in LangGraph's SQLite checkpointer |
 | [0007](0007-custom-orchestrator-and-responsibilities.md) | Hand-built orchestrator instead of a prebuilt agent; use case vs. orchestrator responsibilities; every turn starts with a site search (eval-driven) |
+| [0008](0008-accounts-history-and-secrets.md) | User accounts (Argon2id, server-side sessions), saved chat history, login and API call logs, and the OpenAI key encrypted in the database (SQLAlchemy + Alembic, SQLite by default) |

@@ -14,16 +14,20 @@ TypeScript · Tailwind · shadcn/ui
 
 ## Quick start
 
-Requires Docker and an OpenAI API key.
+Requires Docker and an OpenAI API key. No secret or credential lives in the code.
 
 ```bash
-cp .env.example .env          # then set OPENAI_API_KEY in .env
-docker compose up --build     # or: make dev
-# open http://localhost:3000
+cp .env.example .env
+docker compose run --rm api compileit-chat new-master-key       # paste into SECRETS_MASTER_KEY in .env
+docker compose run --rm api compileit-chat set-secret openai_api_key   # stored encrypted in the DB
+docker compose run --rm api compileit-chat create-user <username>      # prompts for a password
+docker compose up --build     # or: make dev, then open http://localhost:3000 and log in
 ```
 
 The first start builds the search index from the committed crawl snapshot (~10 s, under a
-cent of embeddings). The index and the chat sessions persist in a Docker volume.
+cent of embeddings). The database (accounts, history, logs, secrets), the index and the
+agent's memory persist in a Docker volume. Setting `OPENAI_API_KEY` in `.env` also works,
+as a fallback.
 
 <details>
 <summary>Without Docker (uv + Node 24)</summary>
@@ -42,7 +46,10 @@ make web        # http://localhost:3000, in a second terminal
 - **Says so when it doesn't know.** "Det hittar jag inte på compileit.com." Off-topic
   questions are politely declined. Website text is treated as untrusted data.
 - **Follow-ups work.** "Berätta mer om den andra punkten" is reformulated into a concrete
-  search. Sessions persist on the server (SQLite) and in the browser, across reloads.
+  search.
+- **Accounts and saved history.** Users log in with a username and password, and their
+  conversations are saved in the database and listed in a side panel, on any device.
+  Every login and every chat call is logged.
 - **Visible agent activity.** «Söker på webbplatsen: "AI-tjänster"…» streams while tools
   run, then the answer streams token by token. Stop, retry, copy and "Ny konversation".
 - **Responsive and accessible:** mobile-first, keyboard friendly, dark mode, and screen-reader
@@ -98,6 +105,30 @@ frontend/          app/, components/chat/, hooks/useChatStream.ts, lib/ (SSE par
   `sources`, `done`, `error`); no LangChain types reach the API
   ([ADR-0005](docs/adr/0005-sse-over-websockets.md)).
 
+## Accounts, history and secrets
+
+Everything is stored in one database (`DATABASE_URL`; a SQLite file by default, so
+PostgreSQL is a URL change) with a schema managed by Alembic migrations that run on startup
+([ADR-0008](docs/adr/0008-accounts-history-and-secrets.md)).
+
+| Table | What | Protection |
+|---|---|---|
+| `users` | accounts, created by an admin with `compileit-chat create-user` | Argon2id hashes only |
+| `auth_sessions` | login sessions (HttpOnly, SameSite cookie) | only the token's SHA-256 is stored |
+| `login_events` | every login attempt, successful or not | username, result, IP, time |
+| `conversations`, `messages` | each user's chat history | strict per-user isolation (others see 404) |
+| `api_calls` | every chat call: question, answer, sources, tools, status, latency | kept even if the conversation is deleted |
+| `secrets` | the OpenAI API key | Fernet-encrypted; the master key is only in the environment |
+
+Admin commands (in Docker: prefix with `docker compose run --rm api`):
+
+```bash
+compileit-chat create-user <username>            # password prompted hidden, or --password-stdin
+compileit-chat set-secret openai_api_key         # value prompted hidden, or --value-stdin
+compileit-chat new-master-key                    # a new SECRETS_MASTER_KEY
+compileit-chat db-upgrade                        # apply migrations (also done on startup)
+```
+
 ## Example questions
 
 | Question | Expected behaviour |
@@ -140,8 +171,8 @@ make check    # ruff, import contracts, mypy --strict, pytest · ESLint, Prettie
 
 | | |
 |---|---|
-| Backend | 162 tests. Unit tests (domain, use cases with fakes, routing, nodes, chunker, crawler against a fake site); integration tests (Chroma, SQLite sessions, the real LangGraph graph with a scripted chat model, the HTTP API end to end); no network |
-| Frontend | 43 Vitest tests: SSE parsing (split chunks, split UTF-8), reducer, `useChatStream` against a mocked streaming `fetch`, components |
+| Backend | 203 tests. Unit tests (domain, use cases with fakes incl. login, history and audit, routing, nodes, chunker, crawler against a fake site); integration tests (Chroma, the real Alembic migration and SQL repositories, encrypted secrets, the real LangGraph graph with a scripted chat model, the HTTP API end to end incl. login cookies and per-user isolation); no network |
+| Frontend | 51 Vitest tests: SSE parsing (split chunks, split UTF-8), reducer, history mapping, `useChatStream` against a mocked API (reopen after reload, expired session), login and conversation list |
 | CI | GitHub Actions: both stacks' lint, types and tests, plus a frontend production build |
 | Docs | `docs/architecture.md` embeds the orchestration graph generated from code; a test fails if it drifts |
 
@@ -170,9 +201,8 @@ Based on inspecting compileit.com (2026-11-17) before writing the crawler:
   index is derived data, built from the snapshot.
 - **"Branscher" is inferred.** The site names customers, not industries, so the industries
   answer is a labelled compilation from `/uppdrag` (see the eval report).
-- **The visible transcript is stored in the browser.** The agent's memory lives on the
-  server, keyed by the session id. The API has no history endpoint, so a reload restores the
-  transcript from `localStorage`.
+- **History is server-side and per user.** The browser keeps only the id of the open
+  conversation, so a reload reopens it. Everything else comes from the database.
 
 ## Limitations and next steps
 
@@ -185,8 +215,10 @@ Based on inspecting compileit.com (2026-11-17) before writing the crawler:
 - **Scale-out:** SQLite sessions and the in-memory rate limiter assume one API process. Next:
   a Postgres checkpointer, a Redis rate limiter and session expiry, all behind the existing
   interfaces.
-- **Production concerns not in scope:** authentication, abuse protection beyond rate
-  limiting, PII handling in logs (only question length is logged today), and
+- **Accounts:** password change and reset, deactivating users, a cleanup job for expired
+  sessions, master-key rotation, SSO, and a retention policy for `api_calls` (it holds
+  personal data).
+- **Production concerns not in scope:** abuse protection beyond rate limiting, PII handling in logs (only question length is logged today), and
   observability dashboards. LangSmith tracing is already one env var away (`.env.example`).
 - **Latency:** forcing a search on every turn adds ~0.3 s to the first token, and an extra
   step for whole-page requests. It is worth it for the grounding guarantee, but a cached
