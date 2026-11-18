@@ -31,7 +31,7 @@ export function UserMenu({ user, onLogout }: { user: User; onLogout: () => void 
         aria-label={`Kontomeny för ${user.username}`}
         className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left text-sm transition-colors outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[state=open]:bg-sidebar-accent"
       >
-        <Avatar className="size-8 rounded-lg">
+        <Avatar className="size-8 rounded-lg after:rounded-lg">
           <AvatarFallback className="rounded-lg bg-brand-soft text-xs font-semibold text-brand">
             {initials}
           </AvatarFallback>
