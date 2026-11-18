@@ -5,6 +5,7 @@ description = "Swedish Q&A chat over compileit.com: a LangGraph agent behind a C
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "chromadb>=1.5.9",
+    "fastapi>=0.163.2",
     "httpx>=0.28.1",
     "langchain-openai>=1.8.0",
     "langgraph>=1.2.22",
@@ -14,6 +15,7 @@ dependencies = [
     "tiktoken>=0.14.0",
     "trafilatura>=2.3.1",
     "typer>=0.29.1",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [project.scripts]
