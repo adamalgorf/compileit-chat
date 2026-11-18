@@ -31,3 +31,16 @@ export type AssistantMessage = {
 }
 
 export type ChatMessage = UserMessage | AssistantMessage
+
+export type User = { username: string }
+
+export type ConversationSummary = { id: string; title: string; updatedAt: string }
+
+/** A message as saved by the backend (`GET /api/conversations/{id}`). */
+export type StoredMessage = {
+  role: "user" | "assistant"
+  content: string
+  sources: SourceLink[]
+  status: "done" | "error" | "stopped" | null
+  created_at: string
+}

@@ -3,11 +3,11 @@
 import dynamic from "next/dynamic"
 
 /**
- * The conversation lives in the browser (session id and transcript in localStorage), so the
- * chat renders on the client only. That avoids a server/client mismatch and lets the state
- * initialise synchronously from storage.
+ * The app depends on browser-only state (the session cookie check, the active conversation
+ * id in localStorage), so it renders on the client only. That avoids a server/client
+ * mismatch and lets state initialise synchronously from storage.
  */
 export const ChatLoader = dynamic(
-  () => import("@/components/chat/chat").then((module) => module.Chat),
+  () => import("@/components/app-shell").then((module) => module.App),
   { ssr: false, loading: () => <div className="h-dvh" aria-busy="true" /> },
 )

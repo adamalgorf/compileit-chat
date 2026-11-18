@@ -4,7 +4,6 @@ import {
   chatReducer,
   initialChatState,
   isStreaming,
-  restoredChatState,
   type ChatAction,
   type ChatState,
 } from "@/lib/chat-reducer"
@@ -99,8 +98,10 @@ describe("chatReducer", () => {
   })
 })
 
-describe("restoredChatState", () => {
-  it("shows an answer that was streaming at reload as stopped", () => {
-    expect(answer(restoredChatState(apply(sent).messages)).status).toBe("stopped")
+describe("loaded", () => {
+  it("replaces the conversation with a saved one", () => {
+    const saved = apply(sent, streamed({ type: "done" })).messages
+
+    expect(apply(sent, { type: "loaded", messages: saved }).messages).toEqual(saved)
   })
 })

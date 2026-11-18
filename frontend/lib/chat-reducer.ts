@@ -12,18 +12,10 @@ export type ChatAction =
   | { type: "failed"; assistantId: string; message: string }
   | { type: "stopped"; assistantId: string }
   | { type: "retried"; assistantId: string }
+  | { type: "loaded"; messages: ChatMessage[] }
   | { type: "cleared" }
 
 export const initialChatState: ChatState = { messages: [] }
-
-/** State restored from storage. A reload mid-answer cannot resume the stream: show it stopped. */
-export function restoredChatState(messages: ChatMessage[]): ChatState {
-  return {
-    messages: messages.map((m) =>
-      m.role === "assistant" && m.status === "streaming" ? { ...m, status: "stopped" } : m,
-    ),
-  }
-}
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
@@ -49,6 +41,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       )
     case "retried":
       return updateAssistant(state, action.assistantId, (m) => pendingAnswer(m.id, m.question))
+    case "loaded":
+      return { messages: action.messages }
     case "cleared":
       return initialChatState
   }
