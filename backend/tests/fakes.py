@@ -163,3 +163,15 @@ def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return dot / norm if norm else 0.0
+
+
+class StaticRetriever:
+    """Returns the same hits for every query; records the queries."""
+
+    def __init__(self, hits: Sequence[ScoredChunk]) -> None:
+        self._hits = hits
+        self.queries: list[str] = []
+
+    async def search(self, query: str, k: int) -> list[ScoredChunk]:
+        self.queries.append(query)
+        return list(self._hits[:k])
