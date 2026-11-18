@@ -22,6 +22,7 @@ from compileit_chat.infrastructure.crawling.crawler import CrawlConfig, SitemapC
 from compileit_chat.infrastructure.crawling.extractor import MainContentExtractor
 from compileit_chat.infrastructure.llm.chat import openai_chat_model
 from compileit_chat.infrastructure.llm.embeddings import LangChainEmbeddings, openai_embeddings
+from compileit_chat.infrastructure.llm.tracing import enable_langsmith
 from compileit_chat.infrastructure.orchestration.checkpointer import sqlite_checkpointer
 from compileit_chat.infrastructure.orchestration.graph import (
     build_graph,
@@ -64,6 +65,12 @@ class Container:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        if settings.langsmith_tracing:
+            if settings.langsmith_api_key is None:
+                raise ConfigurationError(
+                    "LANGSMITH_TRACING is on but LANGSMITH_API_KEY is not set."
+                )
+            enable_langsmith(settings.langsmith_api_key, settings.langsmith_project)
 
     # --- use cases -----------------------------------------------------------------------
 

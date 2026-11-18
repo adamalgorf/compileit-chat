@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     api_rate_limit_window_seconds: float = Field(default=60.0, gt=0)  # ...per window
     log_level: str = "INFO"
 
+    # Optional LangSmith tracing of every agent run (model calls, tool calls, graph steps)
+    langsmith_tracing: bool = False
+    langsmith_api_key: SecretStr | None = None
+    langsmith_project: str = "compileit-chat"
+
     # Crawling. Profiles under /medarbetare/<id> are thin personal pages that add retrieval
     # noise; leadership and contact details are on /kontakt.
     site_url: str = "https://compileit.com"
