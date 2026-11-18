@@ -122,3 +122,16 @@ describe("EmptyState", () => {
     expect(onPick).toHaveBeenCalledWith(SUGGESTIONS[1])
   })
 })
+
+describe("Composer focus", () => {
+  it("does not grab focus on mount, but refocuses when an answer finishes", () => {
+    const { rerender } = render(<Composer streaming={false} onSend={vi.fn()} onStop={vi.fn()} />)
+    const input = screen.getByLabelText("Din fråga")
+    expect(input).not.toHaveFocus()
+
+    rerender(<Composer streaming onSend={vi.fn()} onStop={vi.fn()} />)
+    rerender(<Composer streaming={false} onSend={vi.fn()} onStop={vi.fn()} />)
+
+    expect(input).toHaveFocus()
+  })
+})

@@ -22,9 +22,12 @@ export function Composer({
   const input = useRef<HTMLTextAreaElement>(null)
   const canSend = text.trim().length > 0 && !streaming
 
-  // Keep focus in the input after an answer, so the next question can be typed directly.
+  // Refocus the input when an answer finishes, so the next question can be typed directly.
+  // Not on mount: on phones that would pop up the keyboard over the empty state.
+  const wasStreaming = useRef(streaming)
   useEffect(() => {
-    if (!streaming) input.current?.focus()
+    if (wasStreaming.current && !streaming) input.current?.focus()
+    wasStreaming.current = streaming
   }, [streaming])
 
   const submit = () => {

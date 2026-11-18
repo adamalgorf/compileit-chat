@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react"
 
-import { displayDomain } from "@/lib/activity"
+import { displayUrl } from "@/lib/activity"
 import type { SourceLink } from "@/lib/types"
 
 /** The pages the answer cites, as cards that open the page in a new tab. */
@@ -21,8 +21,7 @@ export function SourceCards({ sources }: { sources: SourceLink[] }) {
               <span className="min-w-0">
                 <span className="line-clamp-2 text-sm font-medium">{source.title}</span>
                 <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                  {displayDomain(source.url)}
-                  {new URL(source.url).pathname.replace(/\/$/, "")}
+                  {displayUrl(source.url)}
                 </span>
               </span>
               <ArrowUpRight

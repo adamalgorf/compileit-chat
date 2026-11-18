@@ -14,10 +14,11 @@ export function describeActivity({ tool, query }: ToolActivity): string {
   }
 }
 
-/** "compileit.com" from "https://www.compileit.com/om-oss". */
-export function displayDomain(url: string): string {
+/** "compileit.com/om-oss" from "https://www.compileit.com/om-oss/". Never throws. */
+export function displayUrl(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "")
+    const { hostname, pathname } = new URL(url)
+    return hostname.replace(/^www\./, "") + pathname.replace(/\/$/, "")
   } catch {
     return url
   }
