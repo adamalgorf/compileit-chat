@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import type { ReactNode } from "react"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { Providers } from "@/components/providers"
@@ -23,7 +24,9 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Explicit props instead of Next's generated `LayoutProps`, which only exists after
+// `next dev`/`next build` has run, so a clean checkout (CI) could not type-check.
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     // next-themes sets the theme class before hydration, hence the suppressed warning.
     <html lang="sv" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
