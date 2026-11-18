@@ -31,7 +31,7 @@ export function BrandMark({
 export function BrandName({ className }: { className?: string }) {
   return (
     <span className={cn("flex min-w-0 flex-col leading-tight", className)}>
-      <span className="truncate text-sm font-semibold tracking-tight">Compileit-assistenten</span>
+      <span className="truncate text-sm font-semibold tracking-tight">Compilo</span>
       <span className="truncate text-xs text-muted-foreground">Svarar utifrån compileit.com</span>
     </span>
   )

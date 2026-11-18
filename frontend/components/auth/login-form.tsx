@@ -46,7 +46,7 @@ export function LoginForm({ expired = false }: { expired?: boolean }) {
         <div className="flex flex-col items-center gap-3 text-center">
           <BrandMark size="lg" />
           <div>
-            <p className="font-semibold tracking-tight">Compileit-assistenten</p>
+            <p className="font-semibold tracking-tight">Compilo</p>
             <p className="text-sm text-muted-foreground">Svar med källor från compileit.com</p>
           </div>
         </div>
