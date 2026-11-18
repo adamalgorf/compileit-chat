@@ -19,6 +19,16 @@ class Settings(BaseSettings):
 
     openai_api_key: SecretStr | None = None
     embedding_model: str = "text-embedding-3-small"
+    # Fast, cheap, reliable at tool calling, and accepts a low temperature (GPT-5-family
+    # reasoning models ignore temperature and add latency).
+    chat_model: str = "gpt-4.1-mini"
+    chat_temperature: float = Field(default=0.1, ge=0, le=2)
+    llm_timeout_seconds: float = Field(default=30.0, gt=0)
+
+    # Agent guard rails
+    agent_max_steps: int = Field(default=12, gt=0)  # LangGraph recursion limit (~5 tool rounds)
+    agent_timeout_seconds: float = Field(default=60.0, gt=0)
+    history_max_messages: int = Field(default=20, gt=0)  # earlier-turn messages sent to model
 
     # Crawling. Profiles under /medarbetare/<id> are thin personal pages that add retrieval
     # noise; leadership and contact details are on /kontakt.
@@ -50,3 +60,7 @@ class Settings(BaseSettings):
     @property
     def chroma_dir(self) -> Path:
         return self.data_dir / "runtime" / "chroma"
+
+    @property
+    def checkpoint_db(self) -> Path:
+        return self.data_dir / "runtime" / "checkpoints.sqlite3"
