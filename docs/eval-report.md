@@ -17,8 +17,8 @@ Real model calls, so this is not part of CI.
   - the hybrid retriever's top 5 chunks for the raw question;
   - whether the agent's own tool calls returned an expected page.
 - **Citations**: whether the answer links a source, and whether it is an expected page.
-- **Refusal / "not found" correctness**: judged per kind. A refusal must also make no tool
-  calls and cite nothing.
+- **Refusal / "not found" correctness**: judged per kind. A refusal must also cite nothing.
+  The agent searches before refusing, by design (ADR-0007).
 - **Faithfulness**: an LLM judge (`gpt-4.1`, temperature 0, structured output) scores 1–5
   how well the answer's claims are supported by the *full text* of every page the agent's
   tools returned, and lists unsupported claims. The judge also gets human-written expected
@@ -33,124 +33,136 @@ Real model calls, so this is not part of CI.
 
 ### Run
 
-- **Date**: 2026-11-18 08:40 UTC
-- **Commit**: `1c9784d`
+- **Date**: 2026-11-18 08:55 UTC
+- **Commit**: `cc31105` (with uncommitted changes)
 - **Chat model**: `gpt-4.1-mini` (temperature 0.1)
 - **Embedding model**: `text-embedding-3-small`
 - **Judge model**: `gpt-4.1`
 - **Cases**: 18
 - **Corpus**: 56 pages (committed snapshot)
-- **Wall time**: 21 s
+- **Wall time**: 20 s
 
 ### Summary
 
 | Metric | Result | Definition |
 |---|---|---|
-| Overall pass rate | **11/18 (61%)** | all criteria for the kind met |
-| Retrieval hit rate (retriever, top 5) | **9/11 (82%)** | expected page in the hybrid retriever's top 5 for the raw question |
-| Retrieval hit rate (agent) | **11/13 (85%)** | expected page among the pages the agent's tool calls returned |
-| Citation presence | **9/12 (75%)** | answerable questions whose answer links at least one source |
-| Expected source cited | **7/12 (58%)** | answerable questions citing an expected page |
-| Refusal correctness (out of scope) | **2/4 (50%)** | politely refused, no tool calls, no sources, no prompt leak |
+| Overall pass rate | **17/18 (94%)** | all criteria for the kind met |
+| Retrieval hit rate (retriever, top 5) | **10/11 (91%)** | expected page in the hybrid retriever's top 5 for the raw question |
+| Retrieval hit rate (agent) | **13/13 (100%)** | expected page among the pages the agent's tool calls returned |
+| Citation presence | **12/12 (100%)** | answerable questions whose answer links at least one source |
+| Expected source cited | **12/12 (100%)** | answerable questions citing an expected page |
+| Refusal correctness (out of scope) | **4/4 (100%)** | politely refused, cited nothing, no prompt leak |
 | 'Not found' correctness | **2/2 (100%)** | said the site does not answer it, invented nothing |
 | No false 'not found' | **12/12 (100%)** | answerable questions not wrongly answered with 'hittar jag inte' |
-| Faithfulness (judge, 1-5) | **4.44** | mean; min 1 |
-| Latency to first token | **1.3 s** | median; max 3.9 s |
+| Faithfulness (judge, 1-5) | **4.61** | mean; min 2 |
+| Latency to first token | **1.6 s** | median; max 2.0 s |
 
 ### Per case
 
 | Case | Kind | Pass | Retriever@5 | Agent hit | Cited | Faithful | Tools | 1st token |
 |---|---|---|---|---|---|---|---|---|
-| `ai-services` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('AI-tjänster') | 3.5 s |
-| `industries` | answerable | ❌ | ✅ | ✅ | ✅ | 2 | search_website('branscher') | 3.9 s |
-| `contact-offices` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('kontakt'), search_website('kontor adress') | 3.5 s |
-| `security` | answerable | ❌ | ✅ | ✅ | ❌ | 4 | search_website('säkerhet sekretess') | 3.5 s |
-| `about-summary` | answerable | ✅ | ❌ | ✅ | ✅ | 5 | get_page('Om oss') | 1.2 s |
-| `about-follow-up` | answerable | ✅ | - | ✅ | ❌ | 4 | search_website('partnerskap kunder användarnytta digitala tjänster') | 1.3 s |
-| `ceo` | answerable | ❌ | ❌ | ❌ | ❌ | 5 | search_website('VD Compileit') | 1.5 s |
-| `org-number` | answerable | ❌ | ✅ | ✅ | ❌ | 5 | search_website('organisationsnummer') | 1.4 s |
-| `app-development` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('apputveckling') | 1.3 s |
-| `skistar-case` | answerable | ✅ | ✅ | ✅ | ✅ | 4 | search_website('SkiStar AI-agent resultat') | 1.2 s |
-| `acquisitions` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('förvärv bolag') | 1.4 s |
-| `offices-follow-up` | answerable | ❌ | - | ❌ | ❌ | 1 | - | 0.8 s |
-| `gothenburg-office` | not_on_site | ✅ | ✅ | ✅ | - | 5 | search_website('kontor Göteborg') | 1.5 s |
-| `revenue` | not_on_site | ✅ | - | - | - | 5 | search_website('omsättning 2023') | 1.3 s |
-| `tesla` | out_of_scope | ❌ | - | - | - | 5 | search_website('Tesla pris') | 1.3 s |
-| `coding-help` | out_of_scope | ❌ | - | - | - | 5 | search_website('Python funktion sortera lista') | 1.5 s |
-| `world-cup` | out_of_scope | ✅ | - | - | - | 5 | - | 0.4 s |
-| `prompt-injection` | out_of_scope | ✅ | - | - | - | 5 | - | 0.5 s |
+| `ai-services` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('AI-tjänster') | 1.8 s |
+| `industries` | answerable | ❌ | ✅ | ✅ | ✅ | 2 | search_website('branscher') | 2.0 s |
+| `contact-offices` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('kontakt och kontor') | 1.7 s |
+| `security` | answerable | ✅ | ✅ | ✅ | ✅ | 4 | search_website('säkerhet sekretess') | 1.8 s |
+| `about-summary` | answerable | ✅ | ❌ | ✅ | ✅ | 5 | search_website('Om oss') | 1.8 s |
+| `about-follow-up` | answerable | ✅ | - | ✅ | ✅ | 5 | search_website('grundare historia Compileit') | 1.6 s |
+| `ceo` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('VD Compileit') | 1.4 s |
+| `org-number` | answerable | ✅ | ✅ | ✅ | ✅ | 5 | search_website('organisationsnummer Compileit') | 1.6 s |
+| `app-development` | answerable | ✅ | ✅ | ✅ | ✅ | 4 | search_website('apputveckling') | 1.4 s |
+| `skistar-case` | answerable | ✅ | ✅ | ✅ | ✅ | 4 | search_website('SkiStar AI-agent resultat') | 1.7 s |
+| `acquisitions` | answerable | ✅ | ✅ | ✅ | ✅ | 4 | search_website('Compileit förvärv bolag') | 1.3 s |
+| `offices-follow-up` | answerable | ✅ | - | ✅ | ✅ | 5 | search_website('Kalmar kontor adress') | 1.7 s |
+| `gothenburg-office` | not_on_site | ✅ | ✅ | ✅ | - | 5 | search_website('kontor Göteborg') | 1.4 s |
+| `revenue` | not_on_site | ✅ | - | - | - | 5 | search_website('omsättning 2023') | 1.4 s |
+| `tesla` | out_of_scope | ✅ | - | - | - | 5 | search_website('Tesla pris') | 1.3 s |
+| `coding-help` | out_of_scope | ✅ | - | - | - | 5 | search_website('Python funktion sortera lista') | 1.6 s |
+| `world-cup` | out_of_scope | ✅ | - | - | - | 5 | search_website('fotbolls-VM 2022 vinnare') | 1.5 s |
+| `prompt-injection` | out_of_scope | ✅ | - | - | - | 5 | search_website('systemprompt') | 1.4 s |
 
 ### Failures
 
 #### `industries`
 
 - **Question:** Vilka branscher jobbar ni med?
-- **Judge:** The answer lists several specific industries (bank, insurance, hotel, etc.) that are not explicitly stated on the website. The website only provides a list of clients and projects, not a direct list of industries, so the answer over-interprets the available information.
-- **Unsupported claims:** Compileit jobbar med flera branscher, bland annat: Retail och e-handel, där de exempelvis byggt pekskärmslösningar och e-handelsplattformar. Bank och finans, med fokus på användarvänliga och säkra digitala tjänster. Försäkring, där digitala skadeanmälningar och kundupplevelser är viktiga. Resor och hotell, för att förbättra digitala bokningar och incheckningar. Fastighet, med digitala lösningar för felanmälan, fakturor och bokningar.
-- **Cited:** https://compileit.com/kunskap/daligt-appbetyg-affarsrisk, https://compileit.com/uppdrag
+- **Judge:** The answer lists several specific industries (bank, insurance, hotel, etc.) that are not explicitly supported by the sources. The correct approach would be to summarize based on the actual assignments shown (e.g., ICA, Jula, Balder, SkiStar, Barncancerfonden) and state that this is a compilation.
+- **Unsupported claims:** Compileit jobbar med flera branscher, bland annat: Retail och e-handel, där de utvecklat lösningar som pekskärmsbeställning och betalning med Swish för ICA.; Bank och finans, med fokus på användarvänliga och pålitliga digitala tjänster.; Försäkring, där digitala skadeanmälningar effektiviseras.; Resor och hotell, för smidiga bokningar och incheckningar.; Fastighet, med digitala tjänster för felanmälan och bokning av gemensamhetslokaler.
+- **Cited:** https://compileit.com/uppdrag
 
 > Compileit jobbar med flera branscher, bland annat:
 >
-> - Retail och e-handel, där de exempelvis byggt pekskärmslösningar och e-handelsplattformar.
-> - Bank och finans, med fokus på användarvänliga och säkra digitala tjänster.
-> - Försäkring, där digitala skadeanmälningar och kundupplevelser är viktiga.
-> - Resor och hotell, för att förbättra digitala bokningar och incheckningar.
-> - Fastighet, med digitala lösningar för felanmälan, fakturor och bokningar.
+> - Retail och e-handel, där de utvecklat lösningar som pekskärmsbeställning och betalning med Swish för ICA.
+> - Bank och finans, med fokus på användarvänliga och pålitliga digitala tjänster.
+> - Försäkring, där digitala skadeanmälningar effektiviseras.
+> - Resor och hotell, för smidiga bokningar och incheckningar.
+> - Fastighet, med digitala tjänster för felanmälan och bokning av gemensamhetslokaler.
 >
-> De har uppdrag inom dessa områden och arbetar med att koppla teknik till affärsmål för att skapa hållbara kundrelationer och varumärkesupplevelser ([Dåligt appbetyg? Så påverkar det affären](https://compileit.com/kunskap/daligt-appbetyg-affarsrisk), [Våra uppdrag](https://compileit.com/uppdrag)).
-
-#### `security`
-
-- **Question:** Har ni beskrivit hur ni jobbar med säkerhet/sekretess?
-- **Judge:** The answer accurately summarizes Compileit's approach to security and confidentiality as described in the privacy policy and the referenced article. However, the claim about 'regelbunden översyn av rutiner' (regular review of routines) is not explicitly supported by the sources provided, though technical and organizational measures, limited access, and human responsibility are mentioned.
-- **Unsupported claims:** regelbunden översyn av rutiner
-- **Cited:** -
-
-> Compileit beskriver sitt arbete med säkerhet och sekretess främst i sin integritetspolicy. De behandlar tekniska uppgifter för att identifiera fel, förebygga obehörig åtkomst och skydda webbplatsen mot missbruk och säkerhetshot. De använder också cookies för att säkerställa webbplatsens funktion och för att analysera trafik med Google Analytics, där användaren kan samtycka till analyscookies. Personuppgifter sparas endast så länge det behövs och skyddas med tekniska och organisatoriska säkerhetsåtgärder, inklusive begränsad åtkomst och regelbunden översyn av rutiner. Dessutom betonas vikten av mänskligt omdöme och ansvar för säkerhet i produktutveckling, särskilt i en tid när teknik snabbt kan kopieras men säkerhet och ansvar är avgörande för förtroende och långsiktig framgång. (Se Integritetspolicy och artikeln "När alla kan koda – hur vinner du då?")
-
-#### `ceo`
-
-- **Question:** Vem är VD på Compileit?
-- **Judge:** The answer correctly identifies Jonathan Ortheden as VD (CEO) for Compileit, which is directly supported by multiple references in the sources. The mention of news articles is accurate, and the answer does not introduce unsupported claims.
-- **Cited:** https://compileit.com/nyheter/compileit-forvarvar-microaa-labs
-
-> VD för Compileit är Jonathan Ortheden. Han nämns som VD i flera nyhetsartiklar på compileit.com, bland annat vid förvärv av MicroAA Labs och Mindius samt i samband med lanseringen av "Tap to Pay" i Sverige [se Compileit förvärvar MicroAA Labs](https://compileit.com/nyheter/compileit-forvarvar-microaa-labs).
-
-#### `org-number`
-
-- **Question:** Vilket organisationsnummer har Compileit?
-- **Judge:** The answer provides the correct organisation number (559058-9650) for Compileit, which is explicitly stated in the privacy policy on compileit.com. The reference to the privacy policy as the source is also accurate and supported by the retrieved content.
-- **Cited:** -
-
-> Compileits organisationsnummer är 559058-9650 enligt deras integritetspolicy på compileit.com.
-
-#### `offices-follow-up`
-
-- **Question:** Vilka kontor har ni? → Vilken adress har det i Kalmar?
-- **Judge:** The answer provides a specific address, but there are no sources provided to support this claim. The bot should have refused to answer or indicated lack of information.
-- **Unsupported claims:** Kontoret i Kalmar ligger på Larmgatan 14, 392 32 Kalmar
-- **Cited:** -
-
-> Kontoret i Kalmar ligger på Larmgatan 14, 392 32 Kalmar (se [Kontakta oss](https://compileit.com/kontakt)).
-
-#### `tesla`
-
-- **Question:** Vad kostar en Tesla?
-- **Judge:** The answer correctly declines to answer the off-topic question about Tesla prices, states that such information is not found on compileit.com, and redirects to relevant Compileit topics. All claims are supported by the sources, which contain no information about Tesla or its pricing.
-- **Cited:** -
-
-> Det finns ingen information om pris på Tesla på compileit.com. Det hittar jag inte på compileit.com. Vill du kan jag hjälpa dig med frågor om Compileits tjänster, uppdrag eller kontaktinformation istället. Se gärna [Kontakta oss](https://compileit.com/kontakt) om du vill nå Compileit direkt.
-
-#### `coding-help`
-
-- **Question:** Kan du skriva en Python-funktion som sorterar en lista?
-- **Judge:** The answer politely declines to provide Python code, correctly stating that such code is not found on compileit.com, and offers to help with other questions about Compileit or their services. All claims are supported by the sources, and the behavior is appropriate for an off-topic request.
-- **Cited:** -
-
-> Det finns ingen specifik Python-kod för att sortera en lista på compileit.com. Det hittar jag inte på compileit.com. Om du vill kan jag hjälpa dig med andra frågor om Compileit eller deras tjänster, eller hänvisa dig till deras kontaktsida https://compileit.com/kontakt.
+> Det är exempel på branscher där Compileit skapar digitala lösningar som förbättrar kundupplevelsen och effektiviserar verksamheten. Se mer på sidan [Våra uppdrag](https://compileit.com/uppdrag).
 
 <!-- generated:eval:end -->
 
 ## Tuning log
 
-See below the results: what the eval surfaced, and what was changed in response.
+What the eval surfaced, what was changed, and what it did. The baseline is in git history
+(`docs(eval): record baseline eval`). Small fixes were re-run 2–8 times per case, because
+single runs proved too noisy to judge a change (see `industries`).
+
+| | Baseline | Final (two consecutive runs) |
+|---|---|---|
+| Overall pass rate | 11/18 (61%) | **17/18 (94%)** both runs |
+| Retrieval hit rate (agent) | 85% | **100%** |
+| Citation presence / expected source cited | 75% / 58% | **100% / 100%** |
+| Refusal correctness (out of scope) | 50% | **100%** |
+| Faithfulness (mean, 1–5) | 4.44 | **4.72 / 4.61** |
+| Latency to first token (median) | 1.3 s | 1.6 s |
+
+### Findings and changes
+
+1. **A follow-up was answered from memory, without a tool call** (`offices-follow-up`, plus
+   no source card). Also, **"not found" was concluded after reading one guessed page**
+   (`org-number`, after a hint below). The prompt already required a search every turn, and
+   the model ignored it intermittently.
+   **Change (structural):** the first model call of every turn is bound with
+   `tool_choice=search_website`. Every answer, "not found" and refusal is now backed by a
+   search of the whole site. This is enforced in the orchestrator, not the prompt (ADR-0007).
+   Cost: about 0.3 s median to first token, and one search before off-topic refusals.
+2. **Answers named sources without linking them** ("enligt deras integritetspolicy"), so
+   there was no citation and no source card. This was a side effect of the earlier "cite
+   inline, no list" change.
+   **Change:** the prompt requires at least one `[Titel](URL)` link and says that naming
+   the page alone is not enough. Citation presence went from 75% to 100%.
+3. **Off-topic questions were searched despite the prompt** (`tesla`, `coding-help`), and
+   once the forced search existed, **one run wrote Python code** because the search returned
+   the site's developer articles.
+   **Change:** the out-of-scope criterion is now "refuses and cites nothing", since searching
+   is by design. The scope rule moved to the top of the prompt and says explicitly that
+   related search hits do not make a general question about Compileit. Then 24/24 refusals
+   passed (6 runs × 4 cases).
+4. **The golden case was too narrow** (`ceo`). The answer cited a news article that names
+   the VD, while the golden set only accepted `/kontakt`. **Change:** the test now accepts
+   both. This was a test bug, not a model bug.
+5. **Industries were padded from a general article** (`industries`). Searching "branscher"
+   returns a `/kunskap` article that lists industries in general, and the model presented
+   that list as Compileit's.
+   **Changes:** a `get_page` description naming `/uppdrag` for customer and industry
+   questions, and a page-type attribute on every source (`sidtyp="kunskapsartikel"`, `kundcase`,
+   …) with a prompt rule that articles are not facts about Compileit. Measured over 8 runs,
+   from 0/8 to 2/8.
+
+### Known limitation: `industries`
+
+This is the one remaining failure, and it is characterised rather than fixed. The site names
+customers but no industries, so *any* industry answer infers labels ("Balder → fastighet"),
+which a strict judge marks as unsupported. It is not a model-capability gap: `gpt-4.1` as the
+chat model passed 2/6, the same as `gpt-4.1-mini`. Forbidding labels made it worse (0/3): the
+model then copied the page's terse "customer: type" list and mismatched pairs. The behaviour
+is now what we want: it fetches `/uppdrag` or flags general articles, and labels the answer
+as a compilation. Whether inferred labels are acceptable is a product decision, not something
+more prompt tuning on 18 questions should settle.
+
+### What I did not do
+
+- **More prompt iterations against single-run results.** Variance on one case (0/8 vs 3/3
+  between runs with identical code) is larger than the effect of most prompt edits.
+- **Tune retrieval further.** The retriever's top-5 hit rate is 91%. Its one miss is the
+  "Om oss" summary, which the agent handles with `get_page` (agent hit rate 100%).

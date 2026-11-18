@@ -85,3 +85,27 @@ Choices within that:
   constants in the same package, and the tests cover the mapping.
 - Replacing LangGraph still touches only `infrastructure/orchestration/` and
   `container.py`, as ADR-0001 requires.
+
+## Amendment (eval-driven): every turn starts with a site search
+
+The first eval run (`docs/eval-report.md`) showed two behaviours that the prompt asked for but
+the model delivered only intermittently:
+
+- a follow-up answered from memory, without a tool call;
+- "not found" concluded after reading one guessed page.
+
+Both are now enforced in the graph instead of the prompt. `call_model` uses a model bound
+with `tool_choice=search_website` when `tool_iterations == 0`, and the plain tool-bound
+model afterwards. This keeps the use case unchanged and makes the invariant testable
+(`test_first_step_of_a_turn_must_call_a_tool_later_steps_may_answer`).
+
+Trade-offs, measured:
+
+- About 0.3 s more median latency to the first token.
+- Off-topic questions are searched once before the refusal. The search hits can tempt the
+  model to answer, and in one run it wrote code; the scope rule at the top of the prompt
+  covers this (24/24 refusals afterwards).
+- Page requests ("sammanfatta Om oss") take one extra step: search, then `get_page`.
+
+The general lesson from the eval is that **invariants go in the orchestrator, and judgement
+goes in the prompt**.
