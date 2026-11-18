@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=30.0, gt=0)
 
     # Agent guard rails
-    agent_max_steps: int = Field(default=12, gt=0)  # LangGraph recursion limit (~5 tool rounds)
+    agent_max_tool_iterations: int = Field(default=4, gt=0)  # tool rounds, then fallback
     agent_timeout_seconds: float = Field(default=60.0, gt=0)
     history_max_messages: int = Field(default=20, gt=0)  # earlier-turn messages sent to model
 

@@ -6,8 +6,8 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from compileit_chat.domain.documents import ScoredChunk
-from compileit_chat.infrastructure.agent.graph import bounded_history
-from compileit_chat.infrastructure.agent.tools import build_tools, find_page
+from compileit_chat.infrastructure.orchestration.nodes import bounded_history
+from compileit_chat.infrastructure.orchestration.tools import build_tools, find_page
 from tests.fakes import InMemoryDocumentStore, ParagraphChunker, StaticRetriever, make_document
 
 if TYPE_CHECKING:

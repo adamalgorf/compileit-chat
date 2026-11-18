@@ -8,18 +8,12 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-
 from compileit_chat.application.use_cases import (
     AskQuestion,
     BuildIndex,
     IngestWebsite,
     ResetConversation,
 )
-from compileit_chat.infrastructure.agent.agent import LangGraphChatAgent
-from compileit_chat.infrastructure.agent.graph import build_agent_graph
-from compileit_chat.infrastructure.agent.prompts import SYSTEM_PROMPT
-from compileit_chat.infrastructure.agent.tools import build_tools
 from compileit_chat.infrastructure.chunking.heading_chunker import (
     HeadingAwareChunker,
     tiktoken_counter,
@@ -28,6 +22,16 @@ from compileit_chat.infrastructure.crawling.crawler import CrawlConfig, SitemapC
 from compileit_chat.infrastructure.crawling.extractor import MainContentExtractor
 from compileit_chat.infrastructure.llm.chat import openai_chat_model
 from compileit_chat.infrastructure.llm.embeddings import LangChainEmbeddings, openai_embeddings
+from compileit_chat.infrastructure.orchestration.checkpointer import sqlite_checkpointer
+from compileit_chat.infrastructure.orchestration.graph import (
+    build_graph,
+    mermaid_diagram,
+    recursion_limit,
+)
+from compileit_chat.infrastructure.orchestration.nodes import AgentNodes
+from compileit_chat.infrastructure.orchestration.orchestrator import LangGraphOrchestrator
+from compileit_chat.infrastructure.orchestration.prompts import SYSTEM_PROMPT
+from compileit_chat.infrastructure.orchestration.tools import build_tools
 from compileit_chat.infrastructure.retrieval.hybrid_retriever import HybridRetriever
 from compileit_chat.infrastructure.retrieval.tokenizer import SwedishTokenizer
 from compileit_chat.infrastructure.storage.jsonl_document_store import JsonlDocumentStore
@@ -75,11 +79,10 @@ class Container:
 
         Sessions are LangGraph threads, so they survive restarts.
         """
-        path = self.settings.checkpoint_db
-        path.parent.mkdir(parents=True, exist_ok=True)
-        async with AsyncSqliteSaver.from_conn_string(str(path)) as checkpointer:
-            agent = self._chat_agent(checkpointer)
-            yield ChatUseCases(ask=AskQuestion(agent), reset=ResetConversation(agent))
+        async with sqlite_checkpointer(self.settings.checkpoint_db) as checkpointer:
+            orchestrator = self._orchestrator(checkpointer)
+            # The orchestrator is both the ChatAgentPort and the ConversationStorePort.
+            yield ChatUseCases(ask=AskQuestion(orchestrator), reset=ResetConversation(orchestrator))
 
     async def prepare(self) -> None:
         """Startup work for the API: build the search index from the snapshot if missing."""
@@ -89,6 +92,10 @@ class Container:
                 "Built search index on first start",
                 extra={"documents": report.documents, "chunks": report.chunks},
             )
+
+    def orchestration_diagram(self) -> str:
+        """Mermaid source of the agent graph, generated from code (for the docs)."""
+        return mermaid_diagram(self.settings.agent_max_tool_iterations)
 
     # --- adapters ------------------------------------------------------------------------
 
@@ -142,22 +149,22 @@ class Container:
             openai_embeddings(self.settings.embedding_model, self._openai_api_key())
         )
 
-    def _chat_agent(self, checkpointer: BaseCheckpointSaver[str]) -> LangGraphChatAgent:
+    def _orchestrator(self, checkpointer: BaseCheckpointSaver[str]) -> LangGraphOrchestrator:
         s = self.settings
+        tools = build_tools(self.retriever, self.document_store)
         model = openai_chat_model(
             s.chat_model, self._openai_api_key(), s.chat_temperature, s.llm_timeout_seconds
         )
-        graph = build_agent_graph(
-            model,
-            build_tools(self.retriever, self.document_store),
+        nodes = AgentNodes(
+            model.bind_tools(tools),
+            tools,
             SYSTEM_PROMPT,
-            checkpointer,
             max_history_messages=s.history_max_messages,
         )
-        return LangGraphChatAgent(
-            graph,
+        return LangGraphOrchestrator(
+            build_graph(nodes, s.agent_max_tool_iterations, checkpointer),
             checkpointer,
-            max_steps=s.agent_max_steps,
+            recursion_limit=recursion_limit(s.agent_max_tool_iterations),
             timeout_seconds=s.agent_timeout_seconds,
         )
 

@@ -17,7 +17,7 @@ from compileit_chat.domain.conversation import SessionId
 from compileit_chat.domain.documents import SourceRef
 from compileit_chat.interface.api.app import ApiConfig, create_app
 from compileit_chat.interface.api.routes import RATE_LIMITED_MESSAGE
-from tests.agent_factory import CONTACT, CONTACT_ANSWER, contact_turn, make_agent
+from tests.agent_factory import CONTACT, CONTACT_ANSWER, contact_turn, make_orchestrator
 from tests.fakes import InMemoryConversationStore, ScriptedAgent
 from tests.scripted_chat_model import ScriptedChatModel
 
@@ -175,7 +175,7 @@ def test_cors_allows_the_configured_frontend_origin(client: TestClient) -> None:
 def test_full_stack_with_real_graph_and_scripted_model() -> None:
     """API → AskQuestion → LangGraph agent → tools, with only the LLM scripted."""
     model = ScriptedChatModel(replies=[*contact_turn(), *contact_turn()])
-    with api_client(make_agent(model)) as client:
+    with api_client(make_orchestrator(model)) as client:
         first = parse_sse(ask(client, "Hur kontaktar man er?").text)
         ask(client, "Och var sitter ni?")
 

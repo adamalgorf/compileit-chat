@@ -1,4 +1,4 @@
-"""Builds the real LangGraph agent around a scripted model and in-memory content."""
+"""Builds the real orchestration graph around a scripted model and in-memory content."""
 
 from __future__ import annotations
 
@@ -8,9 +8,10 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from compileit_chat.domain.documents import ScoredChunk
-from compileit_chat.infrastructure.agent.agent import LangGraphChatAgent
-from compileit_chat.infrastructure.agent.graph import build_agent_graph
-from compileit_chat.infrastructure.agent.tools import build_tools
+from compileit_chat.infrastructure.orchestration.graph import build_graph, recursion_limit
+from compileit_chat.infrastructure.orchestration.nodes import AgentNodes
+from compileit_chat.infrastructure.orchestration.orchestrator import LangGraphOrchestrator
+from compileit_chat.infrastructure.orchestration.tools import build_tools
 from tests.fakes import InMemoryDocumentStore, ParagraphChunker, StaticRetriever, make_document
 from tests.scripted_chat_model import tool_call
 
@@ -26,15 +27,20 @@ CONTACT_HITS = [ScoredChunk(chunk, 1.0) for chunk in ParagraphChunker().split(CO
 CONTACT_ANSWER = f"Mejla hello@compileit.com, se [Kontakta oss]({CONTACT.url})."
 
 
-def make_agent(
+def make_orchestrator(
     model: ScriptedChatModel,
     checkpointer: BaseCheckpointSaver[str] | None = None,
-    max_steps: int = 12,
-) -> LangGraphChatAgent:
+    max_tool_iterations: int = 4,
+) -> LangGraphOrchestrator:
     saver = checkpointer or InMemorySaver()
     tools = build_tools(StaticRetriever(CONTACT_HITS), InMemoryDocumentStore([CONTACT]))
-    graph = build_agent_graph(model, tools, "SYSTEM", saver, max_history_messages=20)
-    return LangGraphChatAgent(graph, saver, max_steps=max_steps, timeout_seconds=10)
+    nodes = AgentNodes(model.bind_tools(tools), tools, "SYSTEM", max_history_messages=20)
+    return LangGraphOrchestrator(
+        build_graph(nodes, max_tool_iterations, saver),
+        saver,
+        recursion_limit=recursion_limit(max_tool_iterations),
+        timeout_seconds=10,
+    )
 
 
 def contact_turn() -> list[AIMessage]:

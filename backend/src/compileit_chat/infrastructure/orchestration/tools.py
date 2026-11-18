@@ -1,10 +1,9 @@
-"""The agent's tools: search the site, read one page, list all pages.
+"""The agent's tools: thin wrappers that call ports and format the result.
 
 Each tool returns (content, artifact):
-- content: text for the model, with site content wrapped in <källa>/<sidor> tags so the
-  prompt can treat it as untrusted data;
-- artifact: the pages involved as `{"title", "url"}` dicts (plain data, so the checkpointer
-  can store them). The adapter turns them into `RetrievalEvent`s.
+- content: text for the model, with site content delimited as untrusted data (prompts.py);
+- artifact: the pages involved as `{"title", "url"}` dicts. The `collect_sources` node
+  gathers them into the graph state.
 """
 
 from __future__ import annotations
@@ -16,6 +15,8 @@ from urllib.parse import urlsplit
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from compileit_chat.infrastructure.orchestration.prompts import pages_block, source_block
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
@@ -26,7 +27,6 @@ if TYPE_CHECKING:
 
 type ToolResult = tuple[str, list[dict[str, str]]]
 
-_TAG_BREAKOUT = re.compile(r"</?\s*(källa|sidor)", re.IGNORECASE)
 _TRANSLITERATION = str.maketrans("åäö", "aao")
 
 
@@ -66,7 +66,7 @@ def build_tools(
         if not hits:
             return f"Inga träffar för '{query}'.", []
         blocks = [
-            _source_block(h.chunk.source, h.chunk.text, section=h.chunk.section_heading)
+            source_block(h.chunk.source, h.chunk.text, section=h.chunk.section_heading)
             for h in hits
         ]
         return "\n\n".join(blocks), _artifact(h.chunk.source for h in hits)
@@ -82,12 +82,11 @@ def build_tools(
         text = document.text
         if len(text) > max_page_chars:
             text = text[:max_page_chars] + "\n\n[Sidan är avkortad.]"
-        return _source_block(document.source, text), _artifact([document.source])
+        return source_block(document.source, text), _artifact([document.source])
 
     async def list_pages() -> ToolResult:
         pages = sorted(await documents.list_all(), key=lambda d: d.url)
-        lines = "\n".join(f"- {_clean(d.title)}: {d.url}" for d in pages)
-        return f"<sidor>\n{lines}\n</sidor>", _artifact(d.source for d in pages)
+        return pages_block(d.source for d in pages), _artifact(d.source for d in pages)
 
     return [
         StructuredTool.from_function(
@@ -139,20 +138,8 @@ def find_page(documents: Sequence[Document], url_or_title: str) -> Document | No
     return None
 
 
-def _source_block(source: SourceRef, text: str, section: str | None = None) -> str:
-    attributes = f'titel="{_clean(source.title)}" url="{source.url}"'
-    if section:
-        attributes += f' avsnitt="{_clean(section)}"'
-    return f"<källa {attributes}>\n{_TAG_BREAKOUT.sub('', text)}\n</källa>"
-
-
 def _artifact(sources: Iterable[SourceRef]) -> list[dict[str, str]]:
     return [{"title": s.title, "url": s.url} for s in sources]
-
-
-def _clean(value: str) -> str:
-    """Make site text safe inside a tag attribute or a tag-delimited list."""
-    return _TAG_BREAKOUT.sub("", value).replace('"', "'")
 
 
 def _path_key(url: str) -> str:
