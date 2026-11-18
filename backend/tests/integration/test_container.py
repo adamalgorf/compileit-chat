@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 from pydantic import SecretStr
@@ -36,5 +37,25 @@ def test_tracing_without_key_is_a_configuration_error() -> None:
 def test_missing_openai_key_is_reported_when_a_model_is_needed() -> None:
     container = Container(Settings(_env_file=None, openai_api_key=None))
 
-    with pytest.raises(ConfigurationError, match="OPENAI_API_KEY"):
+    with pytest.raises(ConfigurationError, match="No OpenAI API key"):
         _ = container.embeddings
+
+
+async def test_openai_key_is_read_from_the_encrypted_database(tmp_path: Path) -> None:
+    settings = Settings(
+        _env_file=None,
+        openai_api_key=None,  # nothing in the environment
+        data_dir=tmp_path,
+        secrets_master_key=SecretStr(Container.new_master_key()),
+    )
+    first = Container(settings)
+    await first.start()
+    await first.store_secret().execute("openai_api_key", "sk-from-database")
+    await first.stop()
+
+    restarted = Container(settings)
+    await restarted.start()
+    try:
+        assert restarted._openai_api_key().get_secret_value() == "sk-from-database"
+    finally:
+        await restarted.stop()

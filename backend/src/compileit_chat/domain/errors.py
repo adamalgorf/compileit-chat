@@ -11,3 +11,11 @@ class InvalidSessionIdError(DomainError):
 
 class InvalidQuestionError(DomainError):
     """The question is empty or too long."""
+
+
+class InvalidUsernameError(DomainError):
+    """The username has an unsupported format."""
+
+
+class WeakPasswordError(DomainError):
+    """A new password does not meet the password rules."""

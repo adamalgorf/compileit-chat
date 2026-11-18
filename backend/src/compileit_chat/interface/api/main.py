@@ -14,5 +14,6 @@ app = create_app(
         cors_origins=tuple(settings.api_cors_origins),
         rate_limit_requests=settings.api_rate_limit_requests,
         rate_limit_window_seconds=settings.api_rate_limit_window_seconds,
+        cookie_secure=settings.auth_cookie_secure,
     ),
 )

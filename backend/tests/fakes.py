@@ -6,14 +6,16 @@ import math
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from compileit_chat.application.errors import AgentError
+from compileit_chat.application.errors import AgentError, UserExistsError
 from compileit_chat.domain.documents import Chunk, Document, FetchedPage, Language, ScoredChunk
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Mapping, Sequence
 
     from compileit_chat.application.dto import AgentEvent
+    from compileit_chat.domain.accounts import User, Username
     from compileit_chat.domain.conversation import Question, SessionId
+    from compileit_chat.domain.history import ApiCallRecord, Conversation, StoredMessage
 
 
 NOW = datetime(2026, 11, 17, tzinfo=UTC)
@@ -175,3 +177,111 @@ class StaticRetriever:
     async def search(self, query: str, k: int) -> list[ScoredChunk]:
         self.queries.append(query)
         return list(self._hits[:k])
+
+
+# --- accounts, history, audit ------------------------------------------------------------
+
+
+class FixedClock:
+    def __init__(self, now: datetime = NOW) -> None:
+        self.current = now
+
+    def now(self) -> datetime:
+        return self.current
+
+
+class PlainTextHasher:
+    """Fast, deterministic stand-in for Argon2 (tests only)."""
+
+    def hash(self, password: str) -> str:
+        return f"hashed:{password}"
+
+    def verify(self, password_hash: str, password: str) -> bool:
+        return password_hash == f"hashed:{password}"
+
+
+class InMemoryUserRepository:
+    def __init__(self) -> None:
+        self.users: dict[str, User] = {}
+
+    async def get(self, user_id: str) -> User | None:
+        return self.users.get(user_id)
+
+    async def get_by_username(self, username: Username) -> User | None:
+        return next((u for u in self.users.values() if u.username == username), None)
+
+    async def add(self, user: User) -> None:
+        if await self.get_by_username(user.username):
+            raise UserExistsError(user.username.value)
+        self.users[user.id] = user
+
+
+class InMemoryAuthSessions:
+    def __init__(self) -> None:
+        self.sessions: dict[str, tuple[str, datetime]] = {}
+
+    async def create(self, token_hash: str, user_id: str, expires_at: datetime) -> None:
+        self.sessions[token_hash] = (user_id, expires_at)
+
+    async def user_id_for(self, token_hash: str, now: datetime) -> str | None:
+        entry = self.sessions.get(token_hash)
+        return entry[0] if entry and entry[1] > now else None
+
+    async def delete(self, token_hash: str) -> None:
+        self.sessions.pop(token_hash, None)
+
+
+class LoginEventRecorder:
+    def __init__(self) -> None:
+        self.events: list[tuple[str, bool, str | None]] = []
+
+    async def record(
+        self, username: str, succeeded: bool, client: str | None, at: datetime
+    ) -> None:
+        self.events.append((username, succeeded, client))
+
+
+class InMemoryConversations:
+    def __init__(self) -> None:
+        self.conversations: dict[str, Conversation] = {}
+        self.stored: dict[str, list[StoredMessage]] = {}
+
+    async def get(self, conversation_id: SessionId) -> Conversation | None:
+        return self.conversations.get(str(conversation_id))
+
+    async def create(self, conversation: Conversation) -> None:
+        self.conversations[str(conversation.id)] = conversation
+        self.stored[str(conversation.id)] = []
+
+    async def list_for_user(self, user_id: str) -> list[Conversation]:
+        mine = [c for c in self.conversations.values() if c.user_id == user_id]
+        return sorted(mine, key=lambda c: c.updated_at, reverse=True)
+
+    async def messages(self, conversation_id: SessionId) -> list[StoredMessage]:
+        return list(self.stored.get(str(conversation_id), []))
+
+    async def add_message(self, conversation_id: SessionId, message: StoredMessage) -> None:
+        self.stored[str(conversation_id)].append(message)
+
+    async def delete(self, conversation_id: SessionId) -> None:
+        self.conversations.pop(str(conversation_id), None)
+        self.stored.pop(str(conversation_id), None)
+
+
+class ApiCallRecorder:
+    def __init__(self) -> None:
+        self.calls: list[ApiCallRecord] = []
+
+    async def record(self, call: ApiCallRecord) -> None:
+        self.calls.append(call)
+
+
+class InMemorySecretStore:
+    def __init__(self) -> None:
+        self.secrets: dict[str, str] = {}
+
+    async def get(self, name: str) -> str | None:
+        return self.secrets.get(name)
+
+    async def put(self, name: str, value: str) -> None:
+        self.secrets[name] = value

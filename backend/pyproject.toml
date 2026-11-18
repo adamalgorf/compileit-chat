@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Swedish Q&A chat over compileit.com: a LangGraph agent behind a Clean Architecture core."
 requires-python = ">=3.12,<3.14"
 dependencies = [
+    "aiosqlite>=0.22.1",
+    "alembic>=1.20.1",
+    "argon2-cffi>=25.1.0",
     "chromadb>=1.5.9",
+    "cryptography>=50.0.2",
     "fastapi>=0.163.2",
     "httpx>=0.28.1",
     "langchain-openai>=1.8.0",
@@ -12,6 +16,7 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=3.1.3",
     "pydantic-settings>=2.16.3",
     "snowballstemmer>=3.1.1",
+    "sqlalchemy[asyncio]>=2.1.9",
     "tiktoken>=0.14.0",
     "trafilatura>=2.3.1",
     "typer>=0.29.1",
@@ -66,6 +71,7 @@ select = [
 
 ignore = [
     "SIM905",   # """word list""".split() is more readable than a long list literal
+    "RUF001",   # en dashes etc. are correct typography in user-facing Swedish text
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -131,7 +137,10 @@ name = "Core (domain + application) is framework-free"
 type = "forbidden"
 source_modules = ["compileit_chat.domain", "compileit_chat.application"]
 forbidden_modules = [
+    "alembic",
+    "argon2",
     "chromadb",
+    "cryptography",
     "fastapi",
     "httpx",
     "langchain",
@@ -140,6 +149,7 @@ forbidden_modules = [
     "langgraph",
     "openai",
     "pydantic",
+    "sqlalchemy",
     "trafilatura",
     "typer",
 ]

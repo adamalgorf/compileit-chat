@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     api_rate_limit_window_seconds: float = Field(default=60.0, gt=0)  # ...per window
     log_level: str = "INFO"
 
+    # Database (users, login sessions and events, chat history, API call log, secrets).
+    # Unset: a SQLite file under data/runtime. Any SQLAlchemy async URL works, e.g.
+    # postgresql+asyncpg://user:pass@host/db (install the driver).
+    database_url: str | None = None
+    # Encrypts secrets stored in the database (Fernet key). Never in code or the database.
+    secrets_master_key: SecretStr | None = None
+
+    # Login
+    auth_session_hours: int = Field(default=12, gt=0)
+    auth_cookie_secure: bool = False  # set true behind HTTPS
+
     # Optional LangSmith tracing of every agent run (model calls, tool calls, graph steps)
     langsmith_tracing: bool = False
     langsmith_api_key: SecretStr | None = None
@@ -71,6 +82,11 @@ class Settings(BaseSettings):
     @property
     def chroma_dir(self) -> Path:
         return self.data_dir / "runtime" / "chroma"
+
+    @property
+    def effective_database_url(self) -> str:
+        default = self.data_dir / "runtime" / "app.sqlite3"
+        return self.database_url or f"sqlite+aiosqlite:///{default.as_posix()}"
 
     @property
     def checkpoint_db(self) -> Path:
