@@ -7,6 +7,11 @@ prompts, the plan proposed before each phase, the review and fix loops, and the 
 that were changed or rejected along the way. Read them alongside `git log`; each phase in
 the transcripts maps to a group of Conventional Commits.
 
+Files:
+
+- `00-prompt-design-session.md` – Claude chat: reading the case PDF, writing the build prompt, and the orchestrator correction.
+- `01-build-session.md` – Claude Code session that built the project.
+
 Notable turns worth looking for:
 
 - **Phase 2**: inspecting compileit.com before writing the crawler; trafilatura measured as
