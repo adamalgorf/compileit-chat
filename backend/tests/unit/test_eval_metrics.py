@@ -65,13 +65,14 @@ def test_answerable_passes_only_with_retrieval_citation_and_faithful_answer() ->
     assert not CaseResult(**{**good.__dict__, "verdict": unfaithful}).passed
 
 
-def test_out_of_scope_must_refuse_without_tools_or_sources() -> None:
+def test_out_of_scope_must_refuse_and_cite_nothing() -> None:
     refused = CaseResult(
         case=case("out_of_scope"), answer="Det kan jag inte svara på.", verdict=GOOD
     )
 
     assert refused.passed
-    assert not CaseResult(**{**refused.__dict__, "tools": [("search_website", "tesla")]}).passed
+    assert CaseResult(**{**refused.__dict__, "tools": [("search_website", "tesla")]}).passed
+    assert not CaseResult(**{**refused.__dict__, "cited": ["https://compileit.com"]}).passed
 
 
 def test_summary_and_report_render() -> None:

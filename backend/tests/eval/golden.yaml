@@ -4,7 +4,8 @@
 #   answerable    the site answers it; expect retrieval of `expected_pages`, a citation and a
 #                 faithful answer
 #   not_on_site   on topic, but the site does not say; expect an explicit "not found"
-#   out_of_scope  not about Compileit; expect a polite refusal without searching
+#   out_of_scope  not about Compileit; expect a polite refusal that cites nothing (the agent
+#                 always searches first, by design: see ADR-0007)
 #
 # turns: the questions of one session, in order. Only the last answer is scored, so a
 #   two-turn case tests that the follow-up is understood in context.
@@ -56,8 +57,9 @@ cases:
   - id: ceo
     kind: answerable
     turns: ["Vem är VD på Compileit?"]
-    expected_pages: [/kontakt]
-    facts: Jonathan Ortheden är CEO (sidan säger CEO, frågan säger VD).
+    # /kontakt says "CEO"; several news articles say "VD" outright. Both are valid sources.
+    expected_pages: [/kontakt, /nyheter]
+    facts: Jonathan Ortheden är VD/CEO.
 
   - id: org-number
     kind: answerable

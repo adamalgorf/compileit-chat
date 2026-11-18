@@ -95,7 +95,9 @@ class CaseResult:
             case "not_on_site":
                 return faithful and v.correct_behaviour
             case "out_of_scope":
-                return v.correct_behaviour and not self.tools and not self.cited
+                # Searching first is by design (every turn starts with a tool call), so only
+                # the outcome counts: a refusal that cites nothing.
+                return v.correct_behaviour and not self.cited
 
 
 def matches(url: str, expected_paths: list[str]) -> bool:
@@ -149,7 +151,7 @@ def summarise(results: list[CaseResult]) -> list[Metric]:
         _rate(
             "Refusal correctness (out of scope)",
             [r.passed for r in out_of_scope],
-            "politely refused, no tool calls, no sources, no prompt leak",
+            "politely refused, cited nothing, no prompt leak",
         ),
         _rate(
             "'Not found' correctness",
