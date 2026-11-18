@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from compileit_chat.application.dto import (
@@ -19,47 +18,24 @@ from compileit_chat.application.dto import (
 from compileit_chat.application.errors import AgentError
 from compileit_chat.application.use_cases import AskQuestion
 from compileit_chat.domain.conversation import Question, SessionId
-from compileit_chat.domain.documents import ScoredChunk, SourceRef
-from compileit_chat.infrastructure.agent.agent import LangGraphChatAgent
-from compileit_chat.infrastructure.agent.graph import build_agent_graph
-from compileit_chat.infrastructure.agent.tools import build_tools
-from tests.fakes import InMemoryDocumentStore, ParagraphChunker, StaticRetriever, make_document
+from compileit_chat.domain.documents import SourceRef
+from tests.agent_factory import CONTACT, CONTACT_ANSWER, contact_turn, make_agent
 from tests.scripted_chat_model import ScriptedChatModel, tool_call
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from langgraph.checkpoint.base import BaseCheckpointSaver
-
     from compileit_chat.application.dto import AgentEvent
+    from compileit_chat.infrastructure.agent.agent import LangGraphChatAgent
 
-CONTACT = make_document(
-    "https://compileit.com/kontakt", "Mejla hello@compileit.com.", "Kontakta oss"
-)
-CONTACT_HITS = [ScoredChunk(chunk, 1.0) for chunk in ParagraphChunker().split(CONTACT)]
 SESSION = SessionId("session-0001")
-ANSWER = f"Mejla hello@compileit.com, se [Kontakta oss]({CONTACT.url})."
-
-
-def make_agent(
-    model: ScriptedChatModel,
-    checkpointer: BaseCheckpointSaver[str] | None = None,
-    max_steps: int = 12,
-) -> LangGraphChatAgent:
-    saver = checkpointer or InMemorySaver()
-    tools = build_tools(StaticRetriever(CONTACT_HITS), InMemoryDocumentStore([CONTACT]))
-    graph = build_agent_graph(model, tools, "SYSTEM", saver, max_history_messages=20)
-    return LangGraphChatAgent(graph, saver, max_steps=max_steps, timeout_seconds=10)
+ANSWER = CONTACT_ANSWER
 
 
 async def run(
     agent: LangGraphChatAgent, question: str, session: SessionId = SESSION
 ) -> list[AgentEvent]:
     return [event async for event in agent.stream(session, Question(question))]
-
-
-def contact_turn() -> list[AIMessage]:
-    return [tool_call("search_website", query="kontakt"), AIMessage(ANSWER)]
 
 
 async def test_streams_tool_call_retrieval_and_answer_tokens() -> None:
