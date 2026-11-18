@@ -52,7 +52,7 @@ export function Composer({
         event.preventDefault()
         submit()
       }}
-      className="relative rounded-2xl border bg-card shadow-sm transition-shadow focus-within:ring-3 focus-within:ring-ring/30"
+      className="relative rounded-2xl border bg-card shadow-sm transition-[box-shadow,border-color] focus-within:border-brand/40 focus-within:shadow-md focus-within:ring-3 focus-within:ring-ring/20"
     >
       <label htmlFor="question" className="sr-only">
         Din fråga
@@ -79,13 +79,20 @@ export function Composer({
             type="button"
             size="icon"
             variant="secondary"
+            className="rounded-xl"
             onClick={onStop}
             aria-label="Stoppa svaret"
           >
             <Square className="fill-current" aria-hidden />
           </Button>
         ) : (
-          <Button type="submit" size="icon" disabled={!canSend} aria-label="Skicka fråga">
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!canSend}
+            aria-label="Skicka fråga"
+            className="rounded-xl bg-brand text-brand-foreground shadow-sm hover:bg-brand/90"
+          >
             <ArrowUp aria-hidden />
           </Button>
         )}

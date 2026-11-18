@@ -1,10 +1,15 @@
 "use client"
 
-import { CircleAlert, LogIn } from "lucide-react"
+import { CircleAlert, Loader2 } from "lucide-react"
 import { useState, type FormEvent } from "react"
 
 import { useAuth } from "@/components/auth/auth-provider"
+import { BrandMark } from "@/components/brand"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { ApiError, MESSAGES } from "@/lib/api"
 
 export function LoginForm({ expired = false }: { expired?: boolean }) {
@@ -30,98 +35,84 @@ export function LoginForm({ expired = false }: { expired?: boolean }) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-6" aria-labelledby="login-title">
-        <div className="space-y-2">
-          <h1 id="login-title" className="text-2xl font-semibold tracking-tight">
-            Logga in
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Compileit-assistenten svarar på frågor om compileit.com. Dina konversationer sparas på
-            ditt konto.
-          </p>
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-muted/40 px-4 py-10">
+      <div className="bg-dots pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-brand/15 blur-3xl" />
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
+      <div className="relative w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <BrandMark size="lg" />
+          <div>
+            <p className="font-semibold tracking-tight">Compileit-assistenten</p>
+            <p className="text-sm text-muted-foreground">Svar med källor från compileit.com</p>
+          </div>
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-          >
-            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {error}
-          </p>
-        )}
+        <Card className="shadow-xl shadow-black/5">
+          <CardHeader>
+            <CardTitle id="login-title" className="text-xl">
+              Logga in
+            </CardTitle>
+            <CardDescription>Dina konversationer sparas på ditt konto.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={submit} className="space-y-4" aria-labelledby="login-title">
+              {error && (
+                <p
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                >
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  {error}
+                </p>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="username">Användarnamn</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  autoFocus
+                  required
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Lösenord</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                  className="h-10"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="h-10 w-full"
+                disabled={submitting || !username.trim() || !password}
+              >
+                {submitting && <Loader2 className="animate-spin" aria-hidden />}
+                {submitting ? "Loggar in…" : "Logga in"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        <div className="space-y-4">
-          <Field
-            id="username"
-            label="Användarnamn"
-            value={username}
-            onChange={setUsername}
-            autoComplete="username"
-            autoFocus
-          />
-          <Field
-            id="password"
-            label="Lösenord"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            autoComplete="current-password"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          className="h-10 w-full"
-          disabled={submitting || !username.trim() || !password}
-        >
-          <LogIn aria-hidden />
-          {submitting ? "Loggar in…" : "Logga in"}
-        </Button>
         <p className="text-center text-xs text-muted-foreground">
           Saknar du konto? Kontakta en administratör.
         </p>
-      </form>
+      </div>
     </main>
-  )
-}
-
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  type = "text",
-  autoComplete,
-  autoFocus = false,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  type?: string
-  autoComplete: string
-  autoFocus?: boolean
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        autoFocus={autoFocus}
-        autoCapitalize="none"
-        spellCheck={false}
-        required
-        className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-      />
-    </div>
   )
 }

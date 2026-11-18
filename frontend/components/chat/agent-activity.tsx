@@ -1,11 +1,12 @@
 import { Check, LoaderCircle } from "lucide-react"
 
 import { describeActivity } from "@/lib/activity"
+import { cn } from "@/lib/utils"
 import type { ToolActivity } from "@/lib/types"
 
 /**
- * What the agent is doing, e.g. «Söker på webbplatsen: "AI-tjänster"». While the answer
- * streams, the latest step spins; afterwards the steps stay as a compact, checked trail.
+ * What the agent is doing, e.g. «Söker på webbplatsen: "AI-tjänster"», as small pills. While
+ * the answer is pending the latest step spins; afterwards the steps stay as a checked trail.
  */
 export function AgentActivity({
   activity,
@@ -22,7 +23,7 @@ export function AgentActivity({
     return working && !answering ? <Step label="Tänker" active /> : null
   }
   return (
-    <ul className="space-y-1" aria-label="Agentens steg">
+    <ul className="flex flex-wrap gap-1.5" aria-label="Agentens steg">
       {activity.map((step, index) => (
         <li key={index}>
           <Step
@@ -37,13 +38,20 @@ export function AgentActivity({
 
 function Step({ label, active = false }: { label: string; active?: boolean }) {
   return (
-    <span className="flex items-center gap-2 text-sm text-muted-foreground">
-      {active ? (
-        <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
-      ) : (
-        <Check className="size-3.5" aria-hidden />
+    <span
+      className={cn(
+        "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+        active
+          ? "border-brand/30 bg-brand-soft text-brand"
+          : "border-border bg-muted/50 text-muted-foreground",
       )}
-      <span className={active ? "animate-pulse motion-reduce:animate-none" : undefined}>
+    >
+      {active ? (
+        <LoaderCircle className="size-3 animate-spin motion-reduce:animate-none" aria-hidden />
+      ) : (
+        <Check className="size-3" aria-hidden />
+      )}
+      <span className="truncate">
         {label}
         {active && "…"}
       </span>

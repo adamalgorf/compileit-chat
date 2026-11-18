@@ -1,16 +1,18 @@
 "use client"
 
-import { ArrowDown, LogOut, Menu, X } from "lucide-react"
-import { useEffect, useState, type ReactNode } from "react"
+import { ArrowDown, PanelLeft, SquarePen } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth/auth-provider"
 import { AssistantMessage } from "@/components/chat/assistant-message"
 import { Composer } from "@/components/chat/composer"
-import { ConversationList } from "@/components/chat/conversation-list"
 import { EmptyState } from "@/components/chat/empty-state"
+import { Sidebar } from "@/components/chat/sidebar"
 import { UserMessage } from "@/components/chat/user-message"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useChatStream } from "@/hooks/useChatStream"
 import { useConversations } from "@/hooks/useConversations"
@@ -22,93 +24,83 @@ export function Chat({ user }: { user: User }) {
   const history = useConversations(sessionExpired)
   const chat = useChatStream(user, { onUnauthorized: sessionExpired, onSaved: history.refresh })
   const { scrollRef, contentRef, atBottom, scrollToBottom } = useStickToBottom()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const title =
+    history.conversations.find((c) => c.id === chat.conversationId)?.title ?? "Ny konversation"
 
   const send = (text: string) => {
     chat.send(text)
     scrollToBottom("instant") // a new question always brings the conversation into view
   }
 
-  const sidebar = (
-    <ConversationList
-      conversations={history.conversations}
-      activeId={chat.conversationId}
-      loaded={history.loaded}
-      onOpen={(id) => {
-        chat.openConversation(id)
-        setDrawerOpen(false)
-      }}
-      onNew={() => {
-        chat.newConversation()
-        setDrawerOpen(false)
-      }}
-      onDelete={(id) => {
-        void history.remove(id)
-        if (id === chat.conversationId) chat.newConversation()
-      }}
-    />
-  )
+  const sidebarProps = {
+    user,
+    conversations: history.conversations,
+    loaded: history.loaded,
+    activeId: chat.conversationId,
+    onOpen: (id: string) => {
+      chat.openConversation(id)
+      setSheetOpen(false)
+    },
+    onNew: () => {
+      chat.newConversation()
+      setSheetOpen(false)
+    },
+    onDelete: (id: string) => {
+      void history.remove(id).then(() => toast.success("Konversationen togs bort"))
+      if (id === chat.conversationId) chat.newConversation()
+    },
+    onLogout: () => void logout(),
+  }
 
   return (
-    <div className="flex h-dvh">
-      <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 md:flex">
-        <div className="flex h-14 shrink-0 items-center border-b px-4">
-          <span className="truncate text-sm font-semibold">Compileit-assistenten</span>
-        </div>
-        {sidebar}
+    <div className="flex h-dvh bg-background">
+      <aside className="hidden w-72 shrink-0 border-r border-sidebar-border md:block">
+        <Sidebar {...sidebarProps} />
       </aside>
-      {drawerOpen && <Drawer onClose={() => setDrawerOpen(false)}>{sidebar}</Drawer>}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="left" className="w-80 max-w-[85%] p-0">
+          <SheetTitle className="sr-only">Konversationer</SheetTitle>
+          <SheetDescription className="sr-only">Dina sparade konversationer</SheetDescription>
+          <Sidebar {...sidebarProps} />
+        </SheetContent>
+      </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-2 px-4">
-            <div className="flex min-w-0 items-center gap-1">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 md:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setSheetOpen(true)}
+            aria-label="Visa konversationer"
+          >
+            <PanelLeft aria-hidden />
+          </Button>
+          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">{title}</h1>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="-ml-2 md:hidden"
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Visa konversationer"
+                onClick={sidebarProps.onNew}
+                aria-label="Ny konversation"
+                className="md:hidden"
               >
-                <Menu aria-hidden />
+                <SquarePen aria-hidden />
               </Button>
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold md:hidden">Compileit-assistenten</h1>
-                <p className="truncate text-xs text-muted-foreground">
-                  Svarar utifrån compileit.com
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="hidden max-w-40 truncate text-sm text-muted-foreground sm:inline">
-                {user.username}
-              </span>
-              <ThemeToggle />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => void logout()}
-                    aria-label="Logga ut"
-                  >
-                    <LogOut aria-hidden />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Logga ut ({user.username})</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
+            </TooltipTrigger>
+            <TooltipContent>Ny konversation</TooltipContent>
+          </Tooltip>
         </header>
 
         <main ref={scrollRef} className="relative flex-1 overflow-y-auto overscroll-contain">
-          <div ref={contentRef} className="mx-auto flex min-h-full max-w-3xl flex-col px-4">
-            {chat.loading && (
-              <p className="py-10 text-sm text-muted-foreground" aria-busy="true">
-                Laddar konversationen…
-              </p>
+          <div ref={contentRef} className="mx-auto flex min-h-full max-w-3xl flex-col px-4 md:px-6">
+            {chat.loading && <ConversationSkeleton />}
+            {!chat.loading && !chat.messages.length && (
+              <EmptyState username={user.username} onPick={send} />
             )}
-            {!chat.loading && !chat.messages.length && <EmptyState onPick={send} />}
             {chat.messages.length > 0 && (
               <div
                 role="log"
@@ -124,21 +116,21 @@ export function Chat({ user }: { user: User }) {
           </div>
         </main>
 
-        <footer className="relative shrink-0 bg-background pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <footer className="relative shrink-0 bg-gradient-to-t from-background via-background to-background/0 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
           {!atBottom && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => scrollToBottom()}
-              className="absolute -top-12 left-1/2 -translate-x-1/2 rounded-full shadow-sm"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 rounded-full bg-background shadow-md"
             >
               <ArrowDown aria-hidden />
               Till senaste
             </Button>
           )}
-          <div className="mx-auto max-w-3xl px-4">
+          <div className="mx-auto max-w-3xl px-4 md:px-6">
             <Composer streaming={chat.streaming} onSend={send} onStop={chat.stop} />
-            <p className="mt-2 text-center text-xs text-muted-foreground">
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
               Svaren bygger på compileit.com och kan innehålla fel. Kontrollera gärna källan.
             </p>
           </div>
@@ -150,38 +142,17 @@ export function Chat({ user }: { user: User }) {
   )
 }
 
-/** The conversation list as an overlay panel on small screens. Escape or a tap outside closes. */
-function Drawer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-
+function ConversationSkeleton() {
   return (
-    <div
-      className="fixed inset-0 z-40 md:hidden"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Konversationer"
-    >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-label="Stäng"
-        tabIndex={-1}
-      />
-      <div className="absolute inset-y-0 left-0 flex w-80 max-w-[85%] flex-col bg-background shadow-xl">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
-          <span className="text-sm font-semibold">Konversationer</span>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Stäng" autoFocus>
-            <X aria-hidden />
-          </Button>
+    <div className="space-y-8 py-8" aria-busy="true" aria-label="Laddar konversationen">
+      <Skeleton className="ml-auto h-10 w-2/5 rounded-2xl" />
+      <div className="flex gap-3">
+        <Skeleton className="size-7 shrink-0 rounded-lg" />
+        <div className="flex-1 space-y-2.5">
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-3/5" />
         </div>
-        {children}
       </div>
     </div>
   )

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { App } from "@/components/app-shell"
-import { ConversationList, formatUpdated } from "@/components/chat/conversation-list"
+import { ConversationList, groupByDate } from "@/components/chat/conversation-list"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 const json = (body: unknown, status = 200) =>
@@ -50,7 +50,8 @@ describe("login", () => {
       </TooltipProvider>,
     )
 
-    expect(await screen.findByRole("button", { name: "Logga ut" })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole("button", { name: "Kontomeny för anna" }))
+    expect(await screen.findByRole("menuitem", { name: "Logga ut" })).toBeInTheDocument()
     await waitFor(() =>
       expect(screen.getByText("Dina konversationer sparas här.")).toBeInTheDocument(),
     )
@@ -63,17 +64,15 @@ describe("ConversationList", () => {
     { id: "c2", title: "Hur kontaktar man er?", updatedAt: "2026-11-17T09:00:00Z" },
   ]
 
-  it("marks the active conversation and opens or deletes on request", async () => {
+  it("marks the active conversation and opens or deletes after confirming", async () => {
     const onOpen = vi.fn()
     const onDelete = vi.fn()
-    vi.spyOn(window, "confirm").mockReturnValue(true)
     render(
       <ConversationList
         conversations={conversations}
         activeId="c1"
         loaded
         onOpen={onOpen}
-        onNew={vi.fn()}
         onDelete={onDelete}
       />,
     )
@@ -83,17 +82,41 @@ describe("ConversationList", () => {
       "page",
     )
     await userEvent.click(screen.getByRole("button", { name: /^Hur kontaktar/ }))
-    await userEvent.click(
-      screen.getByRole("button", { name: 'Ta bort konversationen "Hur kontaktar man er?"' }),
-    )
-
     expect(onOpen).toHaveBeenCalledWith("c2")
+
+    await userEvent.click(
+      screen.getByRole("button", { name: 'Fler val för "Hur kontaktar man er?"' }),
+    )
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Ta bort" }))
+    const dialog = await screen.findByRole("alertdialog")
+    expect(dialog).toHaveTextContent("Ta bort konversationen?")
+    expect(onDelete).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole("button", { name: "Ta bort" }))
+
     expect(onDelete).toHaveBeenCalledWith("c2")
   })
 
-  it("formats today as a time and older days as a date", () => {
+  it("groups conversations by how recently they were updated", () => {
     const now = new Date("2026-11-18T15:00:00")
-    expect(formatUpdated(new Date("2026-11-18T14:05:00").toISOString(), now)).toBe("14:05")
-    expect(formatUpdated(new Date("2026-11-12T09:00:00").toISOString(), now)).toMatch(/12 nov/)
+    const at = (iso: string, id: string) => ({
+      id,
+      title: id,
+      updatedAt: new Date(iso).toISOString(),
+    })
+    const groups = groupByDate(
+      [
+        at("2026-11-18T09:00:00", "idag"),
+        at("2026-11-17T22:00:00", "igar"),
+        at("2026-11-14T10:00:00", "veckan"),
+        at("2026-10-01T10:00:00", "gammal"),
+      ],
+      now,
+    )
+    expect(groups.map((g) => [g.label, g.conversations.map((c) => c.id)])).toEqual([
+      ["Idag", ["idag"]],
+      ["Igår", ["igar"]],
+      ["Senaste 7 dagarna", ["veckan"]],
+      ["Äldre", ["gammal"]],
+    ])
   })
 })
