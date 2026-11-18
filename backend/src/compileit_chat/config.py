@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     agent_timeout_seconds: float = Field(default=60.0, gt=0)
     history_max_messages: int = Field(default=20, gt=0)  # earlier-turn messages sent to model
 
+    # HTTP API
+    api_cors_origins: list[str] = ["http://localhost:3000"]
+    api_rate_limit_requests: int = Field(default=20, gt=0)  # chat requests per client...
+    api_rate_limit_window_seconds: float = Field(default=60.0, gt=0)  # ...per window
+    log_level: str = "INFO"
+
     # Crawling. Profiles under /medarbetare/<id> are thin personal pages that add retrieval
     # noise; leadership and contact details are on /kontakt.
     site_url: str = "https://compileit.com"

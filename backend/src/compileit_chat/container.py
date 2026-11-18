@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import cached_property
@@ -41,6 +42,9 @@ if TYPE_CHECKING:
     from compileit_chat.config import Settings
 
 
+logger = logging.getLogger(__name__)
+
+
 class ConfigurationError(Exception):
     """A required setting is missing."""
 
@@ -76,6 +80,15 @@ class Container:
         async with AsyncSqliteSaver.from_conn_string(str(path)) as checkpointer:
             agent = self._chat_agent(checkpointer)
             yield ChatUseCases(ask=AskQuestion(agent), reset=ResetConversation(agent))
+
+    async def prepare(self) -> None:
+        """Startup work for the API: build the search index from the snapshot if missing."""
+        report = await self.build_index().ensure_built()
+        if report is not None:
+            logger.info(
+                "Built search index on first start",
+                extra={"documents": report.documents, "chunks": report.chunks},
+            )
 
     # --- adapters ------------------------------------------------------------------------
 

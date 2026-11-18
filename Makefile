@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 BACKEND := cd backend &&
 
-.PHONY: help install ingest index lint format typecheck test check
+.PHONY: help install api ingest index lint format typecheck test check
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -9,6 +9,9 @@ help: ## Show available targets
 install: ## Install backend dependencies and git hooks
 	$(BACKEND) uv sync
 	$(BACKEND) uv run pre-commit install --config ../.pre-commit-config.yaml
+
+api: ## Run the API with auto-reload on http://localhost:8000
+	$(BACKEND) uv run uvicorn compileit_chat.interface.api.main:app --reload --port 8000
 
 ingest: ## Re-crawl compileit.com, update the snapshot, rebuild the index
 	$(BACKEND) uv run compileit-chat ingest
