@@ -1,0 +1,27 @@
+# docker compose up --build  ->  http://localhost:3000
+# Requires OPENAI_API_KEY in .env (copy .env.example).
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      API_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      # Search index and chat sessions survive restarts; the first start builds the index.
+      - runtime:/app/backend/data/runtime
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000 # as seen from the browser
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  runtime:

@@ -2,7 +2,7 @@
 BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
-.PHONY: help install api web ingest index docs eval lint format typecheck test check
+.PHONY: help install dev api web ingest index docs eval lint format typecheck test check
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -11,6 +11,9 @@ install: ## Install backend + frontend dependencies and git hooks
 	$(BACKEND) uv sync
 	$(BACKEND) uv run pre-commit install --config ../.pre-commit-config.yaml
 	$(FRONTEND) npm ci
+
+dev: ## Run everything in Docker: http://localhost:3000 (needs OPENAI_API_KEY in .env)
+	docker compose up --build
 
 api: ## Run the API with auto-reload on http://localhost:8000
 	$(BACKEND) uv run uvicorn compileit_chat.interface.api.main:app --reload --port 8000
