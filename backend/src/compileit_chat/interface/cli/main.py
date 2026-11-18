@@ -55,7 +55,9 @@ def _secret_input(prompt: str, from_stdin: bool) -> str:
     """Hidden, confirmed prompt; or one line from stdin for scripts (never a CLI argument,
     which would end up in shell history and process listings)."""
     if from_stdin:
-        return sys.stdin.readline().rstrip("\n")
+        # Strip the line ending only (CRLF too, from files made on Windows); spaces are kept,
+        # since they can be part of a password.
+        return sys.stdin.readline().rstrip("\r\n")
     value: str = typer.prompt(prompt, hide_input=True, confirmation_prompt=True)
     return value
 

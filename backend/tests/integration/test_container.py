@@ -59,3 +59,15 @@ async def test_openai_key_is_read_from_the_encrypted_database(tmp_path: Path) ->
         assert restarted._openai_api_key().get_secret_value() == "sk-from-database"
     finally:
         await restarted.stop()
+
+
+def test_cli_reads_passwords_from_stdin_without_windows_line_endings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import io as _io
+
+    from compileit_chat.interface.cli.main import _secret_input
+
+    monkeypatch.setattr("sys.stdin", _io.StringIO(" lösen med mellanslag \r\n"))
+
+    assert _secret_input("Lösenord", from_stdin=True) == " lösen med mellanslag "
