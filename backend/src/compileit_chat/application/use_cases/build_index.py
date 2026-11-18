@@ -45,3 +45,9 @@ class BuildIndex:
         vectors = await self._embeddings.embed_documents([chunk.search_text for chunk in chunks])
         await self._vector_store.replace_all(chunks, vectors)
         return IndexReport(documents=len(documents), chunks=len(chunks))
+
+    async def ensure_built(self) -> IndexReport | None:
+        """Build the index only if it is empty (first start). Returns None if it existed."""
+        if await self._vector_store.count() > 0:
+            return None
+        return await self.execute()

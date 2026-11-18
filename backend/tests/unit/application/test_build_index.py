@@ -35,3 +35,15 @@ async def test_refuses_to_wipe_the_index_when_there_are_no_documents() -> None:
         await BuildIndex(
             InMemoryDocumentStore(), ParagraphChunker(), LengthEmbeddings(), vectors
         ).execute()
+
+
+async def test_ensure_built_builds_only_when_the_index_is_empty() -> None:
+    documents = InMemoryDocumentStore([make_document("https://compileit.com", "Hej")])
+    embeddings, vectors = LengthEmbeddings(), InMemoryVectorStore()
+    use_case = BuildIndex(documents, ParagraphChunker(), embeddings, vectors)
+
+    first, second = await use_case.ensure_built(), await use_case.ensure_built()
+
+    assert first == IndexReport(documents=1, chunks=1)
+    assert second is None
+    assert len(embeddings.embedded) == 1  # embedded once
