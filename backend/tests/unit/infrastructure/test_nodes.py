@@ -27,7 +27,14 @@ CONTACT = {"title": "Kontakta oss", "url": PAGE.url}
 def make_nodes() -> AgentNodes:
     hits = [ScoredChunk(c, 1.0) for c in ParagraphChunker().split(PAGE)]
     tools = build_tools(StaticRetriever(hits), InMemoryDocumentStore([PAGE]))
-    return AgentNodes(RunnableLambda(lambda _: AIMessage("")), tools, "SYSTEM", 20)
+    model = RunnableLambda(lambda _: AIMessage(""))
+    return AgentNodes(
+        model=model,
+        grounding_model=model,
+        tools=tools,
+        system_prompt="SYSTEM",
+        max_history_messages=20,
+    )
 
 
 def calls(*specs: tuple[str, dict[str, Any]]) -> AIMessage:
@@ -87,3 +94,19 @@ async def test_fallback_closes_open_tool_calls_then_answers() -> None:
         ("c1", TOOL_CALL_CANCELLED),
     ]
     assert answer == AIMessage(FALLBACK_ANSWER)
+
+
+async def test_first_step_of_a_turn_must_call_a_tool_later_steps_may_answer() -> None:
+    used: list[str] = []
+    nodes = AgentNodes(
+        model=RunnableLambda(lambda _: used.append("free") or AIMessage("svar")),
+        grounding_model=RunnableLambda(lambda _: used.append("grounding") or AIMessage("")),
+        tools=[],
+        system_prompt="SYSTEM",
+        max_history_messages=20,
+    )
+
+    await nodes.call_model(state(HumanMessage("Följdfråga"), it=0))
+    await nodes.call_model(state(HumanMessage("Följdfråga"), it=1))
+
+    assert used == ["grounding", "free"]

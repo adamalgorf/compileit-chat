@@ -31,7 +31,7 @@ from compileit_chat.infrastructure.orchestration.graph import (
 from compileit_chat.infrastructure.orchestration.nodes import AgentNodes
 from compileit_chat.infrastructure.orchestration.orchestrator import LangGraphOrchestrator
 from compileit_chat.infrastructure.orchestration.prompts import SYSTEM_PROMPT
-from compileit_chat.infrastructure.orchestration.tools import build_tools
+from compileit_chat.infrastructure.orchestration.tools import SEARCH_TOOL, build_tools
 from compileit_chat.infrastructure.retrieval.hybrid_retriever import HybridRetriever
 from compileit_chat.infrastructure.retrieval.tokenizer import SwedishTokenizer
 from compileit_chat.infrastructure.storage.jsonl_document_store import JsonlDocumentStore
@@ -161,9 +161,10 @@ class Container:
             s.chat_model, self._openai_api_key(), s.chat_temperature, s.llm_timeout_seconds
         )
         nodes = AgentNodes(
-            model.bind_tools(tools),
-            tools,
-            SYSTEM_PROMPT,
+            model=model.bind_tools(tools),
+            grounding_model=model.bind_tools(tools, tool_choice=SEARCH_TOOL),
+            tools=tools,
+            system_prompt=SYSTEM_PROMPT,
             max_history_messages=s.history_max_messages,
         )
         return LangGraphOrchestrator(

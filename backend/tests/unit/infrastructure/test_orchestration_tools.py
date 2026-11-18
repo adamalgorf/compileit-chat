@@ -7,6 +7,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from compileit_chat.domain.documents import ScoredChunk
 from compileit_chat.infrastructure.orchestration.nodes import bounded_history
+from compileit_chat.infrastructure.orchestration.prompts import page_type
 from compileit_chat.infrastructure.orchestration.tools import build_tools, find_page
 from tests.fakes import InMemoryDocumentStore, ParagraphChunker, StaticRetriever, make_document
 
@@ -57,7 +58,7 @@ async def test_search_wraps_hits_as_delimited_sources() -> None:
     content, artifact = await call(tools["search_website"], query="kontakt")
 
     assert content == (
-        '<källa titel="Kontakta oss" url="https://compileit.com/kontakt">\n'
+        '<källa titel="Kontakta oss" url="https://compileit.com/kontakt" sidtyp="sida">\n'
         "Mejla hello@compileit.com.\n</källa>"
     )
     assert artifact == [{"title": "Kontakta oss", "url": "https://compileit.com/kontakt"}]
@@ -120,3 +121,18 @@ def test_bounded_history_keeps_current_turn_and_cuts_earlier_turns_at_a_question
     assert bounded_history([*turn, *current], max_earlier=4) == [*turn, *current]
     # Room for 2 earlier messages would start on a tool result; drop the turn instead.
     assert bounded_history([*turn, *current], max_earlier=2) == current
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://compileit.com/uppdrag/balder", "kundcase"),
+        ("https://compileit.com/uppdrag", "kunduppdrag (översikt)"),
+        ("https://compileit.com/tjanster/ai", "tjänst"),
+        ("https://compileit.com/kunskap/nextjs-seo", "kunskapsartikel"),
+        ("https://compileit.com/nyheter/x", "nyhet"),
+        ("https://compileit.com/kontakt", "sida"),
+    ],
+)
+def test_page_type_tells_the_model_what_kind_of_source_it_is(url: str, expected: str) -> None:
+    assert page_type(url) == expected

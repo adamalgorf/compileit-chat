@@ -34,7 +34,14 @@ def make_orchestrator(
 ) -> LangGraphOrchestrator:
     saver = checkpointer or InMemorySaver()
     tools = build_tools(StaticRetriever(CONTACT_HITS), InMemoryDocumentStore([CONTACT]))
-    nodes = AgentNodes(model.bind_tools(tools), tools, "SYSTEM", max_history_messages=20)
+    bound = model.bind_tools(tools)  # the scripted model ignores tool_choice
+    nodes = AgentNodes(
+        model=bound,
+        grounding_model=bound,
+        tools=tools,
+        system_prompt="SYSTEM",
+        max_history_messages=20,
+    )
     return LangGraphOrchestrator(
         build_graph(nodes, max_tool_iterations, saver),
         saver,

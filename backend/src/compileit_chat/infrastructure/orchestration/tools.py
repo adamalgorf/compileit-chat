@@ -27,6 +27,9 @@ if TYPE_CHECKING:
 
 type ToolResult = tuple[str, list[dict[str, str]]]
 
+# Every turn starts with this tool (see `AgentNodes.call_model`).
+SEARCH_TOOL = "search_website"
+
 _TRANSLITERATION = str.maketrans("åäö", "aao")
 
 
@@ -91,7 +94,7 @@ def build_tools(
     return [
         StructuredTool.from_function(
             coroutine=search_website,
-            name="search_website",
+            name=SEARCH_TOOL,
             description=(
                 "Sök i innehållet på compileit.com (hybrid semantisk + nyckelordssökning). "
                 "Returnerar de mest relevanta textavsnitten med titel och URL."
@@ -104,7 +107,9 @@ def build_tools(
             name="get_page",
             description=(
                 "Hämta hela texten för en sida på compileit.com, t.ex. för att sammanfatta "
-                "den eller länka den som källa."
+                "den eller länka den som källa. Nyckelsidor: /uppdrag listar Compileits kunder "
+                "och uppdrag (använd den för frågor om kunder och branscher), /vara-tjanster "
+                "tjänsterna, /kontakt kontaktuppgifter och kontor, /om-oss företaget."
             ),
             args_schema=GetPageArgs,
             response_format="content_and_artifact",

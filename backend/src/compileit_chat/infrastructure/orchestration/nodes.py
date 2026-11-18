@@ -36,16 +36,19 @@ type Update = dict[str, Any]
 
 
 class AgentNodes:
-    """Node functions bound to their dependencies (model, tools, prompt, history budget)."""
+    """Node functions bound to their dependencies (models, tools, prompt, history budget)."""
 
     def __init__(
         self,
+        *,
         model: Runnable[LanguageModelInput, BaseMessage],
+        grounding_model: Runnable[LanguageModelInput, BaseMessage],
         tools: Sequence[BaseTool],
         system_prompt: str,
         max_history_messages: int,
     ) -> None:
-        self._model = model  # already bound to the tools' schemas
+        self._model = model  # bound to the tools; may call them or answer
+        self._grounding_model = grounding_model  # bound with tool_choice=search_website
         self._tools = {tool.name: tool for tool in tools}
         self._system_prompt = system_prompt
         self._max_history_messages = max_history_messages
@@ -53,10 +56,15 @@ class AgentNodes:
     async def call_model(self, state: AgentState) -> Update:
         """Ask the model for the next step: tool calls or the final answer.
 
-        The system prompt is added per call (never stored), and earlier turns are trimmed.
+        The first step of every turn *must* search the website (`grounding_model`), so every
+        answer, every "not found" and every refusal is backed by a search of the whole site,
+        never only by memory or by one guessed page. Prompt instructions alone did not
+        achieve this reliably in the eval (ADR-0007).
+        The system prompt is added per call (never stored); earlier turns are trimmed.
         """
+        model = self._grounding_model if state["tool_iterations"] == 0 else self._model
         history = bounded_history(state["messages"], self._max_history_messages)
-        response = await self._model.ainvoke([SystemMessage(self._system_prompt), *history])
+        response = await model.ainvoke([SystemMessage(self._system_prompt), *history])
         return {"messages": [response]}
 
     async def run_tools(self, state: AgentState) -> Update:

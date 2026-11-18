@@ -69,5 +69,11 @@ def recursion_limit(max_tool_iterations: int) -> int:
 def mermaid_diagram(max_tool_iterations: int = 4) -> str:
     """The graph as Mermaid, for the docs. Node functions are never invoked."""
     placeholder: Runnable[LanguageModelInput, BaseMessage] = RunnableLambda(lambda _: AIMessage(""))
-    nodes = AgentNodes(placeholder, tools=[], system_prompt="", max_history_messages=0)
+    nodes = AgentNodes(
+        model=placeholder,
+        grounding_model=placeholder,
+        tools=[],
+        system_prompt="",
+        max_history_messages=0,
+    )
     return build_graph(nodes, max_tool_iterations).get_graph().draw_mermaid()
