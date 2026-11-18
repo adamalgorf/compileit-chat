@@ -71,7 +71,9 @@ class LangGraphOrchestrator:
         except Exception as error:
             # Boundary translation: provider errors, timeouts and the recursion backstop all
             # mean "no answer"; the use case turns that into a user-facing message.
-            logger.warning("Agent run failed: %r", error, extra={"session_id": str(session_id)})
+            logger.warning(
+                "Agent run failed: %r", error, exc_info=True, extra={"session_id": str(session_id)}
+            )
             raise AgentError(type(error).__name__) from error
 
     async def reset(self, session_id: SessionId) -> None:

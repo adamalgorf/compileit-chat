@@ -96,7 +96,7 @@ graph TD;
 
 | Node | Responsibility |
 |---|---|
-| `call_model` | Adds the system prompt to the current turn plus up to 20 earlier messages (trimmed at a user message) and asks the model for tool calls or the final answer. **The first call of every turn must call `search_website`** (`tool_choice`), so every answer is grounded in a fresh search (ADR-0007, found by the eval). |
+| `call_model` | Adds the system prompt to the current turn plus up to 20 earlier messages (trimmed at a user message) and asks the model for tool calls or the final answer. **The first call of every turn must call `search_website`** (`tool_choice`), so every answer is grounded in a fresh search (ADR-0007, found by the eval). Tool calls left unanswered by a stopped answer are closed as "cancelled" in the model input, so the session stays valid. |
 | `run_tools` | Executes every tool call of the last model message concurrently, reports bad arguments back to the model, and increments `tool_iterations`. |
 | `collect_sources` | Adds the pages that the latest tool round returned to the turn's `sources`, de-duplicated. |
 | `handle_fallback` | Reached when the model still wants tools after `AGENT_MAX_TOOL_ITERATIONS` rounds. Closes the open tool calls and answers with a polite Swedish fallback. |

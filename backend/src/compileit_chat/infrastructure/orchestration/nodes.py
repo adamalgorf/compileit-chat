@@ -63,7 +63,9 @@ class AgentNodes:
         The system prompt is added per call (never stored); earlier turns are trimmed.
         """
         model = self._grounding_model if state["tool_iterations"] == 0 else self._model
-        history = bounded_history(state["messages"], self._max_history_messages)
+        history = close_unanswered_tool_calls(
+            bounded_history(state["messages"], self._max_history_messages)
+        )
         response = await model.ainvoke([SystemMessage(self._system_prompt), *history])
         return {"messages": [response]}
 
@@ -122,6 +124,26 @@ def bounded_history(messages: Sequence[BaseMessage], max_earlier: int) -> list[B
         start_on="human",
     )
     return [*earlier, *messages[current_start:]]
+
+
+def close_unanswered_tool_calls(messages: Sequence[BaseMessage]) -> list[BaseMessage]:
+    """Answer tool calls that never got a result, as "cancelled", right after their message.
+
+    A user who presses stop while a tool runs leaves a checkpoint whose last model message
+    has tool calls but no results. The provider rejects such a history, which would break the
+    session for good, so the model input is repaired here. The checkpoint stays as it was.
+    """
+    answered = {m.tool_call_id for m in messages if isinstance(m, ToolMessage)}
+    repaired: list[BaseMessage] = []
+    for message in messages:
+        repaired.append(message)
+        if isinstance(message, AIMessage):
+            repaired += [
+                ToolMessage(TOOL_CALL_CANCELLED, tool_call_id=call["id"] or "", name=call["name"])
+                for call in message.tool_calls
+                if call["id"] not in answered
+            ]
+    return repaired
 
 
 def _pending_tool_calls(state: AgentState) -> list[ToolCall]:

@@ -8,7 +8,10 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableLambda
 
 from compileit_chat.domain.documents import ScoredChunk
-from compileit_chat.infrastructure.orchestration.nodes import AgentNodes
+from compileit_chat.infrastructure.orchestration.nodes import (
+    AgentNodes,
+    close_unanswered_tool_calls,
+)
 from compileit_chat.infrastructure.orchestration.prompts import (
     FALLBACK_ANSWER,
     TOOL_CALL_CANCELLED,
@@ -110,3 +113,22 @@ async def test_first_step_of_a_turn_must_call_a_tool_later_steps_may_answer() ->
     await nodes.call_model(state(HumanMessage("Följdfråga"), it=1))
 
     assert used == ["grounding", "free"]
+
+
+def test_unanswered_tool_calls_are_closed_in_the_model_input() -> None:
+    aborted = AIMessage("", tool_calls=[{"name": "search_website", "args": {}, "id": "lost"}])
+    complete = calls(("search_website", {"query": "x"}))  # id "c0"
+    history = [
+        HumanMessage("Fråga 1"),
+        aborted,  # the user pressed stop while this tool ran
+        HumanMessage("Fråga 2"),
+        complete,
+        ToolMessage("resultat", tool_call_id="c0"),
+    ]
+
+    repaired = close_unanswered_tool_calls(history)
+
+    assert repaired[2] == ToolMessage(
+        TOOL_CALL_CANCELLED, tool_call_id="lost", name="search_website"
+    )
+    assert repaired[:2] + repaired[3:] == history  # nothing else changes

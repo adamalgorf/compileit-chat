@@ -152,3 +152,22 @@ async def test_end_to_end_with_use_case_reports_only_cited_sources() -> None:
         SourcesEvent(sources=(SourceRef("Kontakta oss", CONTACT.url),)),
         DoneEvent(),
     ]
+
+
+async def test_session_survives_a_stop_while_a_tool_was_running() -> None:
+    """Regression: an abort mid-tool left a tool call without result in the checkpoint, and
+    every later turn sent the provider an invalid history (OpenAI answers 400)."""
+    model = ScriptedChatModel(replies=[AIMessage("Svar")])
+    agent = make_orchestrator(model)
+    aborted = AIMessage("", tool_calls=[{"name": "search_website", "args": {}, "id": "lost"}])
+    await agent._graph.aupdate_state(  # the state a client abort mid-tool leaves behind
+        {"configurable": {"thread_id": str(SESSION)}},
+        {"messages": [HumanMessage("Fråga 1"), aborted]},
+    )
+
+    await run(agent, "Fråga 2")
+
+    sent = model.received[0]
+    requested = {c["id"] for m in sent if isinstance(m, AIMessage) for c in m.tool_calls}
+    answered = {m.tool_call_id for m in sent if isinstance(m, ToolMessage)}
+    assert requested == answered == {"lost"}
