@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 BACKEND := cd backend &&
 
-.PHONY: help install api ingest index lint format typecheck test check
+.PHONY: help install api ingest index docs lint format typecheck test check
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -18,6 +18,9 @@ ingest: ## Re-crawl compileit.com, update the snapshot, rebuild the index
 
 index: ## Rebuild the index from the committed snapshot (no crawl)
 	$(BACKEND) uv run compileit-chat ingest --no-crawl
+
+docs: ## Regenerate the orchestration graph in docs/architecture.md from code
+	$(BACKEND) uv run compileit-chat docs
 
 lint: ## Ruff lint + format check + architecture contracts
 	$(BACKEND) uv run ruff check .
