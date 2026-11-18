@@ -1,6 +1,10 @@
 # ADR-0002: A tool-calling LangGraph agent (custom graph) instead of a fixed RAG chain
 
-- Status: accepted
+- Status: accepted. The graph shape, file layout and stop rule are **amended by
+  [ADR-0007](0007-custom-orchestrator-and-responsibilities.md)**: the code now lives in
+  `infrastructure/orchestration/`, the adapter is `LangGraphOrchestrator`, and a spent tool
+  budget routes to a fallback node instead of failing on the recursion limit. The
+  tools-vs-chain decision below still stands.
 - Date: 2026-11-18
 
 ## Context

@@ -34,7 +34,7 @@ from anything and mypy still checks conformance at the wiring site.
 ## Consequences
 
 - The LangGraph agent is one adapter behind `ChatAgentPort`. Replacing it (e.g. with a plain
-  LangChain chain or another framework) touches `infrastructure/agent` and `container.py`
+  LangChain chain or another framework) touches `infrastructure/orchestration` and `container.py`
   only; use cases, API and tests of the core are unchanged.
 - Use cases are unit-tested with in-memory fakes; framework code is covered by integration tests.
 - Cost: some mapping code at the boundaries (LangChain messages → our own events, Chroma
