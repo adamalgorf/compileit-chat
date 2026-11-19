@@ -10,6 +10,7 @@ the transcripts maps to a group of Conventional Commits.
 Files:
 
 - `00-prompt-design-session.md` – Claude chat: reading the case PDF, writing the build prompt, and the orchestrator correction.
+- `compileit-case-prompt.md` – the build prompt pasted into Claude Code (the first message of `01-build-session.md`).
 - `01-build-session.md` – Claude Code session that built the project.
 
 Notable turns worth looking for:
