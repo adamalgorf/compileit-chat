@@ -9,6 +9,10 @@ import { Textarea } from "@/components/ui/textarea"
 /** Mirrors the backend's `MAX_QUESTION_LENGTH`. */
 export const MAX_LENGTH = 2000
 
+/**
+ * The question box. Enter sends and Shift+Enter adds a line; while an answer streams, the button
+ * stops it.
+ */
 export function Composer({
   streaming,
   onSend,

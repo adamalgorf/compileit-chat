@@ -3,6 +3,7 @@ import type { ChatStreamEvent, ConversationSummary, StoredMessage, User } from "
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "")
 
+/** Swedish messages for errors the server does not describe itself. */
 export const MESSAGES = {
   unreachable: "Kunde inte nå tjänsten just nu. Kontrollera anslutningen och försök igen.",
   invalid: "Frågan kunde inte skickas. Kontrollera att den inte är tom eller för lång.",
@@ -53,6 +54,7 @@ const jsonBody = (body: unknown): RequestInit => ({
 export const login = (username: string, password: string) =>
   json<User>("/api/auth/login", jsonBody({ username, password }))
 
+/** Ends the session server-side; the server also clears the cookie. */
 export const logout = async () => {
   await request("/api/auth/logout", { method: "POST" })
 }
@@ -74,11 +76,13 @@ export async function listConversations(): Promise<ConversationSummary[]> {
   return rows.map((row) => ({ id: row.id, title: row.title, updatedAt: row.updated_at }))
 }
 
+/** A saved conversation with its messages. */
 export const getConversation = (id: string) =>
   json<{ id: string; title: string; messages: StoredMessage[] }>(
     `/api/conversations/${encodeURIComponent(id)}`,
   )
 
+/** Deletes a conversation and the agent's memory of it. */
 export const deleteConversation = async (id: string) => {
   await request(`/api/conversations/${encodeURIComponent(id)}`, { method: "DELETE" })
 }

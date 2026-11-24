@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
 
 class BM25Index:
+    """Scores token lists against a query.
+
+    `k1` caps how much repeating a term raises the score; `b` sets how much long documents
+    are penalised. 1.5 and 0.75 are the usual defaults.
+    """
+
     def __init__(self, corpus: Sequence[Sequence[str]], k1: float = 1.5, b: float = 0.75) -> None:
         self._k1 = k1
         self._b = b
@@ -35,6 +41,7 @@ class BM25Index:
         return sorted(matching, key=lambda hit: hit[1], reverse=True)[:n]
 
     def _score(self, index: int, query: Sequence[str]) -> float:
+        """Sum over query terms of IDF times a saturating, length-normalised term frequency."""
         counts = self._term_counts[index]
         length_norm = 1 - self._b + self._b * self._lengths[index] / (self._average_length or 1)
         score = 0.0

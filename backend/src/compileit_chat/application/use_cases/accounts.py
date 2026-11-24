@@ -30,6 +30,10 @@ def hash_token(token: str) -> str:
 
 
 class CreateUser:
+    """Create an account (done by an admin via the CLI). Enforces the username and password rules
+    and stores only the password hash.
+    """
+
     def __init__(
         self, users: UserRepositoryPort, hasher: PasswordHasherPort, clock: ClockPort
     ) -> None:
@@ -52,6 +56,8 @@ class CreateUser:
 
 @dataclass(frozen=True, slots=True)
 class LoginResult:
+    """A successful login: the user, and the raw session token for the cookie."""
+
     user: User
     token: str  # give to the client once (cookie); only its hash is stored
     expires_at: datetime
@@ -80,6 +86,9 @@ class Login:
         self._dummy_hash = hasher.hash(secrets.token_urlsafe(16))
 
     async def execute(self, username: str, password: str, client: str | None) -> LoginResult:
+        """Raises `AuthenticationError` with the same message whether the username or the password
+        is wrong, so the response does not reveal which accounts exist.
+        """
         now = self._clock.now()
         user = await self._find(username)
         valid = self._hasher.verify(user.password_hash if user else self._dummy_hash, password)
@@ -101,6 +110,8 @@ class Login:
 
 
 class Logout:
+    """End a session by deleting it server-side, which makes the cookie worthless."""
+
     def __init__(self, sessions: AuthSessionStorePort) -> None:
         self._sessions = sessions
 
@@ -119,6 +130,9 @@ class Authenticate:
         self._clock = clock
 
     async def execute(self, token: str | None) -> User | None:
+        """The logged-in user for a session token, or None if the token is missing, unknown or
+        expired, or the account is disabled.
+        """
         if not token:
             return None
         user_id = await self._sessions.user_id_for(hash_token(token), self._clock.now())

@@ -42,8 +42,9 @@ class AskQuestion:
         self._agent = agent
 
     async def execute(self, session_id: SessionId, question: Question) -> AsyncIterator[ChatEvent]:
-        answer_parts: list[str] = []
-        retrieved: list[SourceRef] = []
+        """Run one turn. The agent is only known through `ChatAgentPort`, never LangGraph."""
+        answer_parts: list[str] = []  # the answer so far, to see which sources it cites
+        retrieved: list[SourceRef] = []  # every page the tools returned this turn
         try:
             async for event in self._agent.stream(session_id, question):
                 match event:
@@ -53,11 +54,15 @@ class AskQuestion:
                     case ToolCallEvent():
                         yield event
                     case RetrievalEvent(sources=sources):
+                        # Internal: not sent to the client. Searches return pages the answer
+                        # may not use, and those should not appear as sources.
                         retrieved.extend(sources)
         except AgentError:
+            # The adapter has logged the cause; the user only gets a friendly Swedish message.
             logger.exception("Agent failed", extra={"session_id": str(session_id)})
             yield ErrorEvent(message=AGENT_ERROR_MESSAGE)
             return
 
+        # Show only the retrieved pages the answer actually links to.
         yield SourcesEvent(sources=cited_sources("".join(answer_parts), retrieved))
         yield DoneEvent()

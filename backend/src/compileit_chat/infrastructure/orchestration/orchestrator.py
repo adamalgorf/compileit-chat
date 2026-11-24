@@ -43,6 +43,8 @@ _DISPLAY_ARGUMENT = {"search_website": "query", "get_page": "url_or_title"}
 
 
 class LangGraphOrchestrator:
+    """Adapter behind `ChatAgentPort`: one `stream` call is one turn of a conversation."""
+
     def __init__(
         self,
         graph: CompiledStateGraph[AgentState],
@@ -57,6 +59,11 @@ class LangGraphOrchestrator:
         self._timeout_seconds = timeout_seconds
 
     async def stream(self, session_id: SessionId, question: Question) -> AsyncIterator[AgentEvent]:
+        """Run the graph for one question and yield application events as they happen.
+
+        The session id is the LangGraph thread id: the checkpointer loads that session's
+        earlier messages, so the model sees the conversation so far.
+        """
         config: RunnableConfig = {
             "configurable": {"thread_id": str(session_id)},
             "recursion_limit": self._recursion_limit,
@@ -77,22 +84,32 @@ class LangGraphOrchestrator:
             raise AgentError(type(error).__name__) from error
 
     async def reset(self, session_id: SessionId) -> None:
+        """Forget a session: delete its checkpointed conversation."""
         await self._checkpointer.adelete_thread(str(session_id))
 
 
 def _to_application_events(event: StreamEvent) -> Iterator[AgentEvent]:
+    """Translate one LangGraph event into zero or more application events.
+
+    LangGraph emits many events per turn; only four matter to the user: answer tokens,
+    a tool starting, the sources found, and the fallback answer. Everything else is dropped.
+    """
     kind, name = event["event"], event["name"]
     node = event.get("metadata", {}).get("langgraph_node")
     data = event.get("data", {})
 
+    # Tokens: only from the answering node. Text the model writes alongside tool calls is
+    # also a stream of tokens, and is shown as part of the answer.
     if kind == "on_chat_model_stream" and node == CALL_MODEL:
         chunk = data.get("chunk")
         if isinstance(chunk, AIMessageChunk) and chunk.text:
             yield TokenEvent(chunk.text)
     elif kind == "on_tool_start":
+        # Drives the "Söker på webbplatsen: '…'" indicator in the UI.
         arguments = data.get("input") or {}
         yield ToolCallEvent(tool=name, query=arguments.get(_DISPLAY_ARGUMENT.get(name, "")))
     elif kind == "on_chain_end" and name == node == COLLECT_SOURCES:
+        # The node's output holds every source of the turn so far, deduplicated by URL.
         sources = data["output"]["sources"]
         yield RetrievalEvent(sources=tuple(SourceRef(s["title"], s["url"]) for s in sources))
     elif kind == "on_chain_end" and name == node == HANDLE_FALLBACK:

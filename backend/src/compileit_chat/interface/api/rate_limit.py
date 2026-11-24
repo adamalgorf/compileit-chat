@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 
 
 class SlidingWindowRateLimiter:
+    """At most `max_requests` per key within any `window_seconds`. Kept in memory, so the limit is
+    per process.
+    """
+
     def __init__(
         self,
         max_requests: int,

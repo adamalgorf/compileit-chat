@@ -28,6 +28,9 @@ if TYPE_CHECKING:
 
 
 def encode(event: ChatEvent) -> str:
+    """One event in Server-Sent Events format: an `event:` line with the type, a `data:` line with
+    JSON, then a blank line.
+    """
     name, data = _wire(event)
     return f"event: {name}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 

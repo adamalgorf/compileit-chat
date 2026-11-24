@@ -165,6 +165,7 @@ class Container:
         logger.info("OpenAI API key source: %s", source)
 
     async def stop(self) -> None:
+        """Close database connections on shutdown."""
         await self.database.dispose()
 
     async def prepare(self) -> None:
@@ -206,6 +207,7 @@ class Container:
 
     @cached_property
     def secret_store(self) -> EncryptedSecretStore:
+        """Fails fast without `SECRETS_MASTER_KEY`: encrypted secrets are unreadable without it."""
         key = self.settings.secrets_master_key
         if key is None or not key.get_secret_value():
             raise ConfigurationError(
@@ -248,6 +250,7 @@ class Container:
 
     @cached_property
     def retriever(self) -> HybridRetriever:
+        """Hybrid search, tuned from settings (ADR-0003)."""
         return HybridRetriever(
             self.embeddings,
             self.vector_store,

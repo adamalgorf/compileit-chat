@@ -19,6 +19,8 @@ MIGRATIONS_DIR = Path(__file__).with_name("migrations")
 
 
 class Database:
+    """The async SQLAlchemy engine and session factory for one database URL."""
+
     def __init__(self, url: str) -> None:
         self.url = url
         _ensure_sqlite_directory(url)
@@ -41,6 +43,7 @@ class Database:
 
 
 def alembic_config(url: str) -> Config:
+    """Alembic configuration for running the migrations against `url`."""
     config = Config()
     config.set_main_option("script_location", str(MIGRATIONS_DIR))
     config.set_main_option("sqlalchemy.url", url)

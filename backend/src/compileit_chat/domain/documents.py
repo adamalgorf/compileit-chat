@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class Language(StrEnum):
+    """A page's language, read from its HTML `lang` attribute."""
+
     SWEDISH = "sv"
     ENGLISH = "en"
     UNKNOWN = "unknown"
@@ -46,6 +48,7 @@ class Document:
 
     @property
     def source(self) -> SourceRef:
+        """This page as a citation."""
         return SourceRef(title=self.title, url=self.url)
 
     @property
@@ -75,6 +78,7 @@ class Chunk:
 
     @property
     def source(self) -> SourceRef:
+        """The page this chunk comes from, as a citation."""
         return SourceRef(title=self.title, url=self.document_url)
 
     @property

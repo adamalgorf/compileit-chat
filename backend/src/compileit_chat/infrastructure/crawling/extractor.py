@@ -40,10 +40,15 @@ _CONTACT_LINK_PREFIXES = ("mailto:", "tel:")
 
 
 class MainContentExtractor:
+    """`ContentExtractorPort` adapter: keeps the page's `<main>` as Markdown-like text. Navigation,
+    footer and cookie banner live outside `<main>`, so they drop out.
+    """
+
     def __init__(self, min_chars: int = 50) -> None:
         self._min_chars = min_chars
 
     def extract(self, page: FetchedPage) -> Document | None:
+        """None for pages with too little text to be worth indexing."""
         tree = lxml_html.fromstring(page.html)
         main = tree.find(".//main")
         text = _render_main(main) if main is not None else _fallback(page.html)

@@ -42,6 +42,10 @@ class _Block:
 
 
 class HeadingAwareChunker:
+    """`ChunkerPort` adapter: splits pages at headings into chunks of about `target_tokens`, never
+    more than `max_tokens`.
+    """
+
     def __init__(
         self,
         count_tokens: TokenCounter,
@@ -59,6 +63,7 @@ class HeadingAwareChunker:
         self._overlap = overlap_tokens
 
     def split(self, document: Document) -> list[Chunk]:
+        """Each chunk keeps the page's metadata and its section heading."""
         groups = self._pack(list(self._blocks(document.text)))
         return [
             Chunk(

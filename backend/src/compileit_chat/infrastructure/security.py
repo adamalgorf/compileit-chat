@@ -18,6 +18,7 @@ class Argon2PasswordHasher:
         return self._hasher.hash(password)
 
     def verify(self, password_hash: str, password: str) -> bool:
+        """False for a wrong password or a malformed hash; never raises."""
         try:
             return self._hasher.verify(password_hash, password)
         except (VerificationError, InvalidHashError):
@@ -25,5 +26,7 @@ class Argon2PasswordHasher:
 
 
 class SystemClock:
+    """`ClockPort` using the real time, in UTC."""
+
     def now(self) -> datetime:
         return datetime.now(UTC)

@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True)
 class IngestReport:
+    """Counts for the CLI summary."""
+
     pages_fetched: int
     documents: int
     skipped_empty: int
@@ -41,6 +43,9 @@ class IngestWebsite:
         self._documents = documents
 
     async def execute(self) -> IngestReport:
+        """Crawl and extract every page, drop pages with identical content, and save the rest as the
+        document snapshot.
+        """
         by_hash: dict[str, Document] = {}
         fetched = empty = duplicate = 0
         async for page in self._crawler.crawl():

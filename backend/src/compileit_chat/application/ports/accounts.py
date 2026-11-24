@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class UserRepositoryPort(Protocol):
+    """Stores and looks up user accounts."""
+
     async def get(self, user_id: str) -> User | None: ...
 
     async def get_by_username(self, username: Username) -> User | None: ...
@@ -41,6 +43,8 @@ class AuthSessionStorePort(Protocol):
 
 
 class LoginEventLogPort(Protocol):
+    """Audit log of login attempts, successful or not."""
+
     async def record(
         self, username: str, succeeded: bool, client: str | None, at: datetime
     ) -> None: ...

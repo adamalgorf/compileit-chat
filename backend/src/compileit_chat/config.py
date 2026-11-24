@@ -11,6 +11,10 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
+    """All configuration, read from environment variables or `.env`. Each field maps to the upper-
+    case variable of the same name (`openai_api_key` -> `OPENAI_API_KEY`).
+    """
+
     model_config = SettingsConfigDict(
         env_file=(BACKEND_DIR.parent / ".env", BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
@@ -77,17 +81,21 @@ class Settings(BaseSettings):
 
     @property
     def snapshot_path(self) -> Path:
+        """The crawled pages; committed to git (ADR-0004)."""
         return self.data_dir / "snapshot" / "pages.jsonl"
 
     @property
     def chroma_dir(self) -> Path:
+        """The vector index; rebuilt from the snapshot, not committed."""
         return self.data_dir / "runtime" / "chroma"
 
     @property
     def effective_database_url(self) -> str:
+        """`DATABASE_URL` if set, else a SQLite file."""
         default = self.data_dir / "runtime" / "app.sqlite3"
         return self.database_url or f"sqlite+aiosqlite:///{default.as_posix()}"
 
     @property
     def checkpoint_db(self) -> Path:
+        """LangGraph's checkpoints: the agent's conversation memory."""
         return self.data_dir / "runtime" / "checkpoints.sqlite3"

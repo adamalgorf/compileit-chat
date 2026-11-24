@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class ConversationRepositoryPort(Protocol):
+    """Saved conversations and their messages, per user."""
+
     async def get(self, conversation_id: SessionId) -> Conversation | None: ...
 
     async def create(self, conversation: Conversation) -> None: ...
@@ -32,8 +34,12 @@ class ConversationRepositoryPort(Protocol):
 
 
 class ApiCallLogPort(Protocol):
+    """Audit log of every chat request: question, answer, tools and timing."""
+
     async def record(self, call: ApiCallRecord) -> None: ...
 
 
 class ClockPort(Protocol):
+    """The current time; injected so tests can fix it."""
+
     def now(self) -> datetime: ...

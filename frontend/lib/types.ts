@@ -16,6 +16,7 @@ export type ToolActivity = { tool: string; query: string | null }
 
 export type UserMessage = { id: string; role: "user"; content: string }
 
+/** `stopped`: the user pressed stop. `error`: the request or the agent failed. */
 export type AssistantStatus = "streaming" | "done" | "error" | "stopped"
 
 export type AssistantMessage = {

@@ -16,6 +16,7 @@ type Callbacks = {
   onSaved: () => void
 }
 
+/** What the chat UI gets: the active conversation and its actions. */
 export type ChatStream = {
   conversationId: string
   messages: ChatMessage[]

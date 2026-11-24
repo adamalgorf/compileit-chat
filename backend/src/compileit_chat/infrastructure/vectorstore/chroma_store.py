@@ -36,6 +36,7 @@ class ChromaVectorStore:
     async def replace_all(
         self, chunks: Sequence[Chunk], embeddings: Sequence[Sequence[float]]
     ) -> None:
+        """Swap the whole collection, so the index always matches the latest snapshot."""
         if len(chunks) != len(embeddings):
             raise ValueError("Every chunk needs exactly one embedding.")
         await asyncio.to_thread(self._replace_all, chunks, embeddings)
@@ -44,9 +45,11 @@ class ChromaVectorStore:
         return await asyncio.to_thread(lambda: self._collection().count())
 
     async def search(self, embedding: Sequence[float], k: int) -> list[ScoredChunk]:
+        """The `k` nearest chunks by cosine similarity, best first."""
         return await asyncio.to_thread(self._search, embedding, k)
 
     async def all_chunks(self) -> list[Chunk]:
+        """Every stored chunk, for building the BM25 index."""
         result = await asyncio.to_thread(
             lambda: self._collection().get(include=["documents", "metadatas"])
         )

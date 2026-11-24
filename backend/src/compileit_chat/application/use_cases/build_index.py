@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True)
 class IndexReport:
+    """Counts for the CLI summary."""
+
     documents: int
     chunks: int
 
@@ -38,6 +40,7 @@ class BuildIndex:
         self._vector_store = vector_store
 
     async def execute(self) -> IndexReport:
+        """Chunk every stored page, embed the chunks and replace the vector index with them."""
         documents = await self._documents.list_all()
         if not documents:
             raise IngestionError("No documents to index. Run the crawl first.")

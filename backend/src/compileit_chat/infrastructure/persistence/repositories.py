@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 
 class SqlUserRepository:
+    """`UserRepositoryPort` over SQL."""
+
     def __init__(self, db: Database) -> None:
         self._db = db
 
@@ -63,6 +65,8 @@ class SqlUserRepository:
 
 
 class SqlAuthSessionStore:
+    """`AuthSessionStorePort` over SQL; rows are keyed by token hash."""
+
     def __init__(self, db: Database) -> None:
         self._db = db
 
@@ -74,6 +78,7 @@ class SqlAuthSessionStore:
             await session.commit()
 
     async def user_id_for(self, token_hash: str, now: datetime) -> str | None:
+        """An expired session counts as missing."""
         async with self._db.session() as session:
             row = await session.get(AuthSessionRow, token_hash)
             return row.user_id if row and row.expires_at > now else None
@@ -87,6 +92,8 @@ class SqlAuthSessionStore:
 
 
 class SqlLoginEventLog:
+    """`LoginEventLogPort` over SQL."""
+
     def __init__(self, db: Database) -> None:
         self._db = db
 
@@ -99,6 +106,8 @@ class SqlLoginEventLog:
 
 
 class SqlConversationRepository:
+    """`ConversationRepositoryPort` over SQL."""
+
     def __init__(self, db: Database) -> None:
         self._db = db
 
@@ -168,6 +177,8 @@ class SqlConversationRepository:
 
 
 class SqlApiCallLog:
+    """`ApiCallLogPort` over SQL."""
+
     def __init__(self, db: Database) -> None:
         self._db = db
 

@@ -48,6 +48,8 @@ def validate_new_password(password: str, username: Username) -> None:
 
 @dataclass(frozen=True, slots=True)
 class User:
+    """An account. Only the password's hash is kept, never the password."""
+
     id: str
     username: Username
     password_hash: str

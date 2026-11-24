@@ -6,6 +6,10 @@ import type { AssistantMessage, ChatMessage, ChatStreamEvent } from "@/lib/types
  */
 export type ChatState = { messages: ChatMessage[] }
 
+/**
+ * Everything that can happen to a conversation. `sent` adds the question and an empty answer;
+ * `streamed` events from the server then fill the answer in.
+ */
 export type ChatAction =
   | { type: "sent"; userId: string; assistantId: string; text: string }
   | { type: "streamed"; assistantId: string; event: ChatStreamEvent }
@@ -88,6 +92,7 @@ function updateAssistant(
   }
 }
 
+/** True while the latest answer is still arriving. */
 export function isStreaming(state: ChatState): boolean {
   const last = state.messages.at(-1)
   return last?.role === "assistant" && last.status === "streaming"

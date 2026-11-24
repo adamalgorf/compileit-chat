@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class LangChainEmbeddings:
+    """`EmbeddingPort` adapter over any LangChain embeddings model."""
+
     def __init__(self, embeddings: Embeddings) -> None:
         self._embeddings = embeddings
 
@@ -25,4 +27,5 @@ class LangChainEmbeddings:
 
 
 def openai_embeddings(model: str, api_key: SecretStr) -> Embeddings:
+    """OpenAI embeddings, retried on transient API errors."""
     return OpenAIEmbeddings(model=model, api_key=api_key, max_retries=3)

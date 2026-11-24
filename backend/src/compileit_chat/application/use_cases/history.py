@@ -76,6 +76,9 @@ class ChatWithHistory:
     async def stream(
         self, user: User, conversation_id: SessionId, question: Question
     ) -> AsyncIterator[ChatEvent]:
+        """Pass the answer's events through unchanged while recording them. When the stream ends,
+        however it ends, save the answer and an audit record.
+        """
         started = time.perf_counter()
         first_token_ms: int | None = None
         answer: list[str] = []
@@ -148,6 +151,8 @@ class ChatWithHistory:
 
 
 class ListConversations:
+    """The user's conversations, most recently updated first."""
+
     def __init__(self, conversations: ConversationRepositoryPort) -> None:
         self._conversations = conversations
 
@@ -156,6 +161,8 @@ class ListConversations:
 
 
 class GetConversation:
+    """One of the user's conversations with its messages, for reopening it in the UI."""
+
     def __init__(self, conversations: ConversationRepositoryPort) -> None:
         self._conversations = conversations
 
@@ -176,6 +183,9 @@ class DeleteConversation:
         self._agent_memory = agent_memory
 
     async def execute(self, user: User, conversation_id: SessionId) -> None:
+        """Delete the saved history and the agent's memory of it, so the id cannot bring the old
+        context back.
+        """
         await _owned(self._conversations, user, conversation_id)
         await self._conversations.delete(conversation_id)
         await self._agent_memory.reset(conversation_id)

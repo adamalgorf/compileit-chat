@@ -20,8 +20,10 @@ const SUGGESTION_CARDS: Suggestion[] = [
   },
 ]
 
+/** The case's example questions, as plain strings (used in tests). */
 export const SUGGESTIONS = SUGGESTION_CARDS.map((s) => s.question)
 
+/** Shown before the first question: a greeting and the example questions as cards. */
 export function EmptyState({
   username,
   onPick,

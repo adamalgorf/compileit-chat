@@ -93,6 +93,7 @@ class AgentNodes:
         return {"messages": [*cancelled, AIMessage(FALLBACK_ANSWER)]}
 
     async def _run_tool(self, call: ToolCall) -> ToolMessage:
+        """Run one tool call; a mistake the model can fix comes back as an error result."""
         tool = self._tools.get(call["name"])
         if tool is None:
             return _tool_error(call, f"Okänt verktyg: {call['name']}")
@@ -147,11 +148,13 @@ def close_unanswered_tool_calls(messages: Sequence[BaseMessage]) -> list[BaseMes
 
 
 def _pending_tool_calls(state: AgentState) -> list[ToolCall]:
+    """The tool calls the model just asked for (empty if it answered instead)."""
     last = state["messages"][-1]
     return list(last.tool_calls) if isinstance(last, AIMessage) else []
 
 
 def _latest_tool_results(messages: Sequence[BaseMessage]) -> list[ToolMessage]:
+    """The tool results at the end of the history, i.e. those of the round that just ran."""
     results: list[ToolMessage] = []
     for message in reversed(messages):
         if not isinstance(message, ToolMessage):
@@ -161,6 +164,7 @@ def _latest_tool_results(messages: Sequence[BaseMessage]) -> list[ToolMessage]:
 
 
 def _unique_by_url(sources: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Drop repeated pages, keeping each at the position it was first found."""
     return list({source["url"]: source for source in reversed(sources)}.values())[::-1]
 
 

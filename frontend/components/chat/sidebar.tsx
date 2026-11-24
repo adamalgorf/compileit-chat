@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/chat/user-menu"
 import { Button } from "@/components/ui/button"
 import type { ConversationSummary, User } from "@/lib/types"
 
+/** Shared by the desktop sidebar and the mobile drawer. */
 export type SidebarProps = {
   user: User
   conversations: ConversationSummary[]

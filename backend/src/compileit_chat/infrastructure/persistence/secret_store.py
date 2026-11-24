@@ -22,11 +22,16 @@ class SecretDecryptionError(Exception):
 
 
 class EncryptedSecretStore:
+    """`SecretStorePort` adapter that encrypts with Fernet (AES + HMAC) before writing. The master
+    key comes from the environment, so a copy of the database alone reveals nothing.
+    """
+
     def __init__(self, db: Database, master_key: SecretStr) -> None:
         self._db = db
         self._fernet = Fernet(master_key.get_secret_value())
 
     async def get(self, name: str) -> str | None:
+        """Raises `SecretDecryptionError` if the master key changed since the secret was saved."""
         async with self._db.session() as session:
             row = await session.get(SecretRow, name)
         if row is None:
@@ -37,6 +42,7 @@ class EncryptedSecretStore:
             raise SecretDecryptionError(f"Cannot decrypt secret {name!r}.") from error
 
     async def put(self, name: str, value: str) -> None:
+        """Insert, or overwrite the existing value."""
         ciphertext = self._fernet.encrypt(value.encode())
         async with self._db.session() as session:
             row = await session.get(SecretRow, name)

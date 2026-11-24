@@ -23,6 +23,8 @@ type Tokenizer = Callable[[str], list[str]]
 
 
 class _LexicalIndex:
+    """BM25 over the chunks, returning chunks instead of BM25's document indexes."""
+
     def __init__(self, chunks: Sequence[Chunk], tokenize: Tokenizer) -> None:
         self._chunks = chunks
         self._tokenize = tokenize
@@ -65,11 +67,14 @@ class HybridRetriever:
         self._lexical_lock = asyncio.Lock()
 
     async def search(self, query: str, k: int) -> list[ScoredChunk]:
+        """The `k` best chunks for the query, ranked by fused score."""
         lexical = await self._lexical_index()
+        # Two independent rankings: a wide vector candidate list, and BM25's best few.
         embedding = await self._embeddings.embed_query(query)
         vector_hits = await self._vector_store.search(embedding, max(k, self._vector_candidates))
         lexical_hits = lexical.search(query, self._lexical_candidates)
 
+        # RRF merges by rank (ids only); look the chunks up again afterwards.
         chunks_by_id = {hit.chunk.id: hit.chunk for hit in (*vector_hits, *lexical_hits)}
         fused = reciprocal_rank_fusion(
             [[hit.chunk.id for hit in vector_hits], [hit.chunk.id for hit in lexical_hits]],
@@ -78,6 +83,7 @@ class HybridRetriever:
         return [ScoredChunk(chunks_by_id[chunk_id], score) for chunk_id, score in fused[:k]]
 
     async def _lexical_index(self) -> _LexicalIndex:
+        """Build the BM25 index once; the lock stops concurrent first requests building twice."""
         async with self._lexical_lock:
             if self._lexical is not None:
                 return self._lexical

@@ -16,11 +16,15 @@ TITLE_LENGTH = 60
 
 
 class Role(StrEnum):
+    """Who wrote a saved message."""
+
     USER = "user"
     ASSISTANT = "assistant"
 
 
 class CallStatus(StrEnum):
+    """How a chat request ended."""
+
     DONE = "done"  # answered
     ERROR = "error"  # the agent failed; the user saw an error message
     STOPPED = "stopped"  # the client disconnected (stop button, closed tab)
@@ -39,6 +43,8 @@ class Conversation:
 
 @dataclass(frozen=True, slots=True)
 class StoredMessage:
+    """One saved message of a conversation, as shown in the history."""
+
     role: Role
     content: str
     created_at: datetime

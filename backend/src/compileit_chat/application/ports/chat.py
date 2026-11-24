@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 
 
 class ChatAgentPort(Protocol):
+    """The agent that answers questions. Implemented by the LangGraph orchestrator; the application
+    layer only sees this interface, so the agent framework can be swapped.
+    """
+
     def stream(self, session_id: SessionId, question: Question) -> AsyncIterator[AgentEvent]:
         """Answer `question` in the context of earlier turns in the same session.
 
@@ -21,6 +25,8 @@ class ChatAgentPort(Protocol):
 
 
 class ConversationStorePort(Protocol):
+    """The agent's own memory of a conversation, which can be reset."""
+
     async def reset(self, session_id: SessionId) -> None:
         """Forget all turns of the session. Resetting an unknown session is a no-op."""
         ...

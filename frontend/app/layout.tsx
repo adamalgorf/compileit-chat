@@ -9,6 +9,7 @@ import "./globals.css"
 const sans = Geist({ variable: "--font-sans", subsets: ["latin"] })
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
 
+/** The browser tab's title and the page description. */
 export const metadata: Metadata = {
   title: "Compilo · Compileits assistent",
   description: "Ställ frågor om Compileit och få svar med källor från compileit.com.",

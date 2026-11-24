@@ -12,6 +12,10 @@ KNOWN_SECRETS = frozenset({OPENAI_API_KEY})
 
 
 class StoreSecret:
+    """Save a known secret (e.g. the OpenAI key) encrypted in the database. Unknown names are
+    rejected, so a typo cannot create a secret nothing reads.
+    """
+
     def __init__(self, secrets: SecretStorePort) -> None:
         self._secrets = secrets
 

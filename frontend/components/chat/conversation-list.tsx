@@ -51,6 +51,9 @@ export function groupByDate(conversations: ConversationSummary[], now = new Date
   return groups.filter((group) => group.conversations.length > 0)
 }
 
+/**
+ * Saved conversations grouped by date. Each has a menu to delete it, after a confirmation dialog.
+ */
 export function ConversationList({
   conversations,
   activeId,

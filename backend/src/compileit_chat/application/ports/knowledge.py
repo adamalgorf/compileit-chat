@@ -11,12 +11,16 @@ if TYPE_CHECKING:
 
 
 class EmbeddingPort(Protocol):
+    """Turns text into vectors: pages in batches, questions one at a time."""
+
     async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]: ...
 
     async def embed_query(self, text: str) -> list[float]: ...
 
 
 class VectorStorePort(Protocol):
+    """Stores chunks with their vectors and finds the nearest ones."""
+
     async def replace_all(
         self, chunks: Sequence[Chunk], embeddings: Sequence[Sequence[float]]
     ) -> None:
@@ -43,6 +47,8 @@ class DocumentStorePort(Protocol):
 
 
 class RetrieverPort(Protocol):
+    """Finds the chunks most relevant to a question (used by `search_website`)."""
+
     async def search(self, query: str, k: int) -> list[ScoredChunk]:
         """The `k` most relevant chunks for a natural-language query, best first."""
         ...

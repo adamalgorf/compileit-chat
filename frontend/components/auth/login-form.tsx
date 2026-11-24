@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ApiError, MESSAGES } from "@/lib/api"
 
+/** The login screen. `expired` tells the user why they were sent back to it. */
 export function LoginForm({ expired = false }: { expired?: boolean }) {
   const { login } = useAuth()
   const [username, setUsername] = useState("")

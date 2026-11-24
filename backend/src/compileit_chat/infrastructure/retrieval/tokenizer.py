@@ -22,6 +22,11 @@ _STOP_WORDS = frozenset(
 
 
 class SwedishTokenizer:
+    """Text -> search terms. Stemming lets "tjänster" match "tjänst" and "tjänsten".
+
+    The same tokenizer runs on chunks and on queries, so both sides use the same terms.
+    """
+
     def __init__(self) -> None:
         self._stemmer = snowballstemmer.stemmer("swedish")
 

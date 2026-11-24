@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+/** Login state and actions. Use inside `<AuthProvider>`. */
 export function useAuth(): Auth {
   const auth = useContext(AuthContext)
   if (!auth) throw new Error("useAuth must be used inside <AuthProvider>")

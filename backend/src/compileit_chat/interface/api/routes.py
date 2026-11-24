@@ -46,6 +46,7 @@ router = APIRouter(prefix="/api")
 
 
 def use_cases(request: Request) -> AppUseCases:
+    """Dependency: the app's use cases."""
     app_use_cases: AppUseCases = request.app.state.use_cases
     return app_use_cases
 
@@ -54,6 +55,7 @@ UseCases = Annotated[AppUseCases, Depends(use_cases)]
 
 
 async def current_user(request: Request, cases: UseCases) -> User:
+    """Dependency for protected routes: the user behind the cookie, else 401."""
     config: ApiConfig = request.app.state.config
     user = await cases.authenticate.execute(request.cookies.get(config.cookie_name))
     if user is None:
@@ -74,10 +76,12 @@ def _limit(limiter: SlidingWindowRateLimiter, key: str, message: str) -> None:
 
 
 def limit_chat(request: Request, user: CurrentUser) -> None:
+    """Per-user limit on chat requests, since each one costs OpenAI tokens."""
     _limit(request.app.state.rate_limiter, user.id, RATE_LIMITED_MESSAGE)
 
 
 def limit_login(request: Request) -> None:
+    """Per-IP limit on login attempts, against password guessing."""
     client = request.client.host if request.client else "unknown"
     _limit(request.app.state.login_limiter, client, LOGIN_RATE_LIMITED_MESSAGE)
 
@@ -111,6 +115,7 @@ async def login(
 
 @router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(request: Request, cases: UseCases) -> Response:
+    """End the session server-side and clear the cookie."""
     config: ApiConfig = request.app.state.config
     if token := request.cookies.get(config.cookie_name):
         await cases.logout.execute(token)
@@ -121,6 +126,7 @@ async def logout(request: Request, cases: UseCases) -> Response:
 
 @router.get("/auth/me", responses={401: {"model": ErrorResponse}})
 async def me(user: CurrentUser) -> UserResponse:
+    """The logged-in user; the frontend uses it to choose login screen or chat."""
     return UserResponse(username=user.username.value)
 
 
@@ -177,6 +183,7 @@ async def list_conversations(user: CurrentUser, cases: UseCases) -> list[Convers
 async def get_conversation(
     conversation_id: str, user: CurrentUser, cases: UseCases
 ) -> ConversationResponse:
+    """A saved conversation with its messages, for reopening it."""
     conversation, messages = await cases.get_conversation.execute(user, SessionId(conversation_id))
     return ConversationResponse(
         id=str(conversation.id),
@@ -207,6 +214,7 @@ async def delete_conversation(conversation_id: str, user: CurrentUser, cases: Us
 
 @router.get("/health")
 async def health() -> HealthResponse:
+    """Liveness check, used by the Docker health check."""
     return HealthResponse(status="ok")
 
 

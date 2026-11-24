@@ -19,6 +19,10 @@ import { useConversations } from "@/hooks/useConversations"
 import { useStickToBottom } from "@/hooks/useStickToBottom"
 import type { ChatMessage, User } from "@/lib/types"
 
+/**
+ * The logged-in app: history sidebar (a drawer on mobile), the conversation and the composer. It
+ * only wires things together; the logic lives in `useChatStream` and `useConversations`.
+ */
 export function Chat({ user }: { user: User }) {
   const { logout, sessionExpired } = useAuth()
   const history = useConversations(sessionExpired)

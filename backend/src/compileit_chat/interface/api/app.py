@@ -35,15 +35,20 @@ REQUEST_ID_HEADER = "X-Request-ID"
 class Backend(Protocol):
     """What the API needs from the composition root (`Container` in production)."""
 
-    def use_cases(self) -> AbstractAsyncContextManager[AppUseCases]: ...
+    def use_cases(self) -> AbstractAsyncContextManager[AppUseCases]:
+        """The use cases, open for as long as the app runs."""
 
-    async def prepare(self) -> None: ...
+    async def prepare(self) -> None:
+        """Before serving: migrate, load secrets, build the index if needed."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Release resources on shutdown."""
 
 
 @dataclass(frozen=True, slots=True)
 class ApiConfig:
+    """HTTP-level settings: CORS, rate limits and the session cookie."""
+
     cors_origins: tuple[str, ...] = ("http://localhost:3000",)
     rate_limit_requests: int = 20  # chat requests per user per window
     rate_limit_window_seconds: float = 60.0
@@ -54,6 +59,10 @@ class ApiConfig:
 
 
 def create_app(backend: Backend, config: ApiConfig) -> FastAPI:
+    """Build the FastAPI app around a `Backend`: the container in production, a fake in the API
+    tests.
+    """
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await backend.prepare()  # migrate the database, load secrets, build the index if needed

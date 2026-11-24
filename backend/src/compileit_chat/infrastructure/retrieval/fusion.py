@@ -16,6 +16,9 @@ def reciprocal_rank_fusion(
 
     Uses ranks only, so vector cosine similarities and BM25 scores (incomparable scales)
     never need normalising. Ties keep first-seen order.
+
+    `k` damps the head of each list: with k=60, rank 1 is worth 1/61 and rank 10 is 1/70,
+    so an item found by both lists usually beats one ranked first by only one of them.
     """
     scores: defaultdict[str, float] = defaultdict(float)
     for ranking in rankings:

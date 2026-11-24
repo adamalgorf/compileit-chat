@@ -28,6 +28,7 @@ export function BrandMark({
   )
 }
 
+/** The product name and tagline, shown next to `BrandMark`. */
 export function BrandName({ className }: { className?: string }) {
   return (
     <span className={cn("flex min-w-0 flex-col leading-tight", className)}>

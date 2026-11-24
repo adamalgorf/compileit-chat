@@ -34,6 +34,8 @@ _NON_HTML_SUFFIXES = (".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", 
 
 @dataclass(frozen=True, slots=True)
 class CrawlConfig:
+    """Crawl scope and limits; the defaults are polite for a small site."""
+
     site_url: str
     user_agent: str
     max_pages: int = 200
@@ -44,6 +46,10 @@ class CrawlConfig:
 
 
 class SitemapCrawler:
+    """`WebCrawlerPort` adapter: sitemap first and robots.txt respected. It follows links only when
+    the site has no usable sitemap.
+    """
+
     def __init__(
         self, config: CrawlConfig, transport: httpx.AsyncBaseTransport | None = None
     ) -> None:
@@ -55,6 +61,7 @@ class SitemapCrawler:
         self._excludes = [re.compile(pattern) for pattern in config.exclude_patterns]
 
     async def crawl(self) -> AsyncIterator[FetchedPage]:
+        """Yield each in-scope HTML page once, fetching a few at a time."""
         async with self._client() as client:
             robots = await self._load_robots(client)
             seeds = await self._sitemap_urls(client, robots)

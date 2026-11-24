@@ -30,6 +30,7 @@ const components: Components = {
   ),
 }
 
+/** Renders an answer as Markdown, safely (see above). */
 export function Markdown({ children }: { children: string }) {
   return (
     <div className="text-[15px] break-words">

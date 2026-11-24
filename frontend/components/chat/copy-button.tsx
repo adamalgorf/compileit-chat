@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
+/** Copies an answer to the clipboard and briefly shows a check. */
 export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
 

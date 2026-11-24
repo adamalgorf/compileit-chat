@@ -21,16 +21,22 @@ if TYPE_CHECKING:
 
 
 class JsonlDocumentStore:
+    """`DocumentStorePort` over a JSON Lines file (the committed snapshot), kept in memory after the
+    first read.
+    """
+
     def __init__(self, path: Path) -> None:
         self._path = path
         self._cache: dict[str, Document] | None = None
 
     async def replace_all(self, documents: Sequence[Document]) -> None:
+        """Write the pages sorted by URL, so a re-crawl gives a small, readable git diff."""
         ordered = sorted(documents, key=lambda d: d.url)
         await asyncio.to_thread(self._write, ordered)
         self._cache = _index(ordered)
 
     async def get(self, url: str) -> Document | None:
+        """Look up by URL, ignoring trailing slashes and host case."""
         return (await self._documents()).get(normalize_url(url))
 
     async def list_all(self) -> list[Document]:

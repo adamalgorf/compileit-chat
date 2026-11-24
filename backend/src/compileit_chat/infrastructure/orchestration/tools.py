@@ -33,6 +33,10 @@ SEARCH_TOOL = "search_website"
 _TRANSLITERATION = str.maketrans("åäö", "aao")
 
 
+# Argument schemas. The model reads the field descriptions, so they are in Swedish and say
+# how to phrase good arguments; Pydantic rejects bad ones before the tool runs.
+
+
 class SearchWebsiteArgs(BaseModel):
     query: str = Field(
         description=(
@@ -64,7 +68,13 @@ def build_tools(
     documents: DocumentStorePort,
     max_page_chars: int = 12_000,
 ) -> list[BaseTool]:
+    """The three tools, bound to the ports they read from.
+
+    The tool descriptions are prompts too: they tell the model when to use which tool.
+    """
+
     async def search_website(query: str, k: int = 5) -> ToolResult:
+        """Hybrid search; each hit is returned as a delimited block with its source."""
         hits = await retriever.search(query, k)
         if not hits:
             return f"Inga träffar för '{query}'.", []
@@ -75,6 +85,7 @@ def build_tools(
         return "\n\n".join(blocks), _artifact(h.chunk.source for h in hits)
 
     async def get_page(url_or_title: str) -> ToolResult:
+        """A whole page, for summaries; capped so one long page cannot fill the context."""
         document = find_page(await documents.list_all(), url_or_title)
         if document is None:
             return (
@@ -88,6 +99,7 @@ def build_tools(
         return source_block(document.source, text), _artifact([document.source])
 
     async def list_pages() -> ToolResult:
+        """Every page's title and URL, so the model can pick one for `get_page`."""
         pages = sorted(await documents.list_all(), key=lambda d: d.url)
         return pages_block(d.source for d in pages), _artifact(d.source for d in pages)
 
@@ -144,12 +156,15 @@ def find_page(documents: Sequence[Document], url_or_title: str) -> Document | No
 
 
 def _artifact(sources: Iterable[SourceRef]) -> list[dict[str, str]]:
+    """Sources as plain dicts, so the checkpointer can store them in the graph state."""
     return [{"title": s.title, "url": s.url} for s in sources]
 
 
 def _path_key(url: str) -> str:
+    """Compare pages by path only, so www/non-www, trailing slashes and case don't matter."""
     return urlsplit(url).path.rstrip("/").casefold()
 
 
 def _slug(text: str) -> str:
+    """A title as a URL slug: "Våra tjänster" -> "vara-tjanster"."""
     return re.sub(r"[^a-z0-9]+", "-", text.casefold().translate(_TRANSLITERATION)).strip("-")

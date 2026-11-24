@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 
 def enable_langsmith(api_key: SecretStr, project: str) -> None:
+    """Trace every graph run in LangSmith (optional, off by default)."""
     os.environ["LANGSMITH_TRACING"] = "true"
     os.environ["LANGSMITH_API_KEY"] = api_key.get_secret_value()
     os.environ["LANGSMITH_PROJECT"] = project

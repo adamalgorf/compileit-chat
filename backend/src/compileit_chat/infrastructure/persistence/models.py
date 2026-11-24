@@ -31,6 +31,7 @@ class UTCDateTime(TypeDecorator[datetime]):
     cache_ok = True
 
     def process_bind_param(self, value: datetime | None, dialect: Dialect) -> datetime | None:
+        """Store timestamps in UTC; refuse naive datetimes instead of guessing their zone."""
         if value is None:
             return None
         if value.tzinfo is None:
@@ -38,16 +39,21 @@ class UTCDateTime(TypeDecorator[datetime]):
         return value.astimezone(UTC)
 
     def process_result_value(self, value: datetime | None, dialect: Dialect) -> datetime | None:
+        """SQLite returns naive datetimes: mark them UTC again."""
         if value is None:
             return None
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class Base(DeclarativeBase):
+    """Base class of every table."""
+
     pass
 
 
 class UserRow(Base):
+    """User accounts."""
+
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -80,6 +86,8 @@ class LoginEventRow(Base):
 
 
 class ConversationRow(Base):
+    """Saved conversations. The id is also the agent's thread id."""
+
     __tablename__ = "conversations"
     __table_args__ = (Index("ix_conversations_user_updated", "user_id", "updated_at"),)
 
@@ -91,6 +99,8 @@ class ConversationRow(Base):
 
 
 class MessageRow(Base):
+    """The messages of a conversation, in the order they were written."""
+
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

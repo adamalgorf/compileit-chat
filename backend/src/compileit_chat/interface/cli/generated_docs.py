@@ -10,6 +10,7 @@ _BLOCK = re.compile(re.escape(START_MARKER) + r".*?" + re.escape(END_MARKER), re
 
 
 def render_block(mermaid: str) -> str:
+    """The diagram wrapped in the markers that `make docs` replaces."""
     # Trailing whitespace is stripped so editors and pre-commit hooks cannot cause drift.
     body = "\n".join(line.rstrip() for line in mermaid.strip().splitlines())
     return f"{START_MARKER}\n```mermaid\n{body}\n```\n{END_MARKER}"

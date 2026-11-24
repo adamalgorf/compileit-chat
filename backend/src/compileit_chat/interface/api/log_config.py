@@ -14,6 +14,8 @@ _STANDARD_ATTRIBUTES = frozenset(vars(logging.makeLogRecord({}))) | {"message", 
 
 
 class JsonFormatter(logging.Formatter):
+    """One JSON object per log line, with the request id and any `extra`."""
+
     def format(self, record: logging.LogRecord) -> str:
         entry: dict[str, object] = {
             "ts": datetime.fromtimestamp(record.created, UTC).isoformat(timespec="milliseconds"),
@@ -30,6 +32,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_json_logging(level: str = "INFO") -> None:
+    """Send every log, uvicorn's included, through `JsonFormatter`."""
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
     logging.basicConfig(level=level, handlers=[handler], force=True)

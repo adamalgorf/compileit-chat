@@ -1,3 +1,4 @@
+/** The user's question, as a bubble on the right. */
 export function UserMessage({ content }: { content: string }) {
   return (
     <div className="flex justify-end">

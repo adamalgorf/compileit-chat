@@ -8,6 +8,7 @@ import { SourceCards } from "@/components/chat/source-cards"
 import { Button } from "@/components/ui/button"
 import type { AssistantMessage as AssistantMessageData } from "@/lib/types"
 
+/** One answer: the agent's steps, the streamed Markdown, the cited sources, and copy or retry. */
 export function AssistantMessage({
   message,
   onRetry,
